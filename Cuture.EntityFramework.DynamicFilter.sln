@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33122.133
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "benchmark", "benchmark", "{7E538728-6E17-49DE-BED1-7BF78280B9DC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cuture.EntityFramework.DynamicFilter.Benchmark", "benchmark\Cuture.EntityFramework.DynamicFilter.Benchmark\Cuture.EntityFramework.DynamicFilter.Benchmark.csproj", "{A1FFEDAF-ECCE-4404-9255-72A3DA6A457D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{1A345255-170E-44C9-B75D-F351FF78766B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cuture.EntityFramework.DynamicFilter", "src\Cuture.EntityFramework.DynamicFilter\Cuture.EntityFramework.DynamicFilter.csproj", "{EE8024C6-4017-40F0-96EE-F026FD7032A0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{3B0DAD89-8894-41EF-A4BC-4D060FC5BB73}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cuture.EntityFramework.DynamicFilter.Test", "test\Cuture.EntityFramework.DynamicFilter.Test\Cuture.EntityFramework.DynamicFilter.Test.csproj", "{C3601FBE-0FE9-4A6A-9E13-F3D07BF01AD4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "solution items", "solution items", "{07D4524D-19D0-4AA4-916E-829CAE401A7F}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Build.props = Directory.Build.props
+		LICENSE.txt = LICENSE.txt
+		README.md = README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A1FFEDAF-ECCE-4404-9255-72A3DA6A457D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1FFEDAF-ECCE-4404-9255-72A3DA6A457D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1FFEDAF-ECCE-4404-9255-72A3DA6A457D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1FFEDAF-ECCE-4404-9255-72A3DA6A457D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE8024C6-4017-40F0-96EE-F026FD7032A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE8024C6-4017-40F0-96EE-F026FD7032A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE8024C6-4017-40F0-96EE-F026FD7032A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE8024C6-4017-40F0-96EE-F026FD7032A0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3601FBE-0FE9-4A6A-9E13-F3D07BF01AD4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3601FBE-0FE9-4A6A-9E13-F3D07BF01AD4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3601FBE-0FE9-4A6A-9E13-F3D07BF01AD4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3601FBE-0FE9-4A6A-9E13-F3D07BF01AD4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{A1FFEDAF-ECCE-4404-9255-72A3DA6A457D} = {7E538728-6E17-49DE-BED1-7BF78280B9DC}
+		{EE8024C6-4017-40F0-96EE-F026FD7032A0} = {1A345255-170E-44C9-B75D-F351FF78766B}
+		{C3601FBE-0FE9-4A6A-9E13-F3D07BF01AD4} = {3B0DAD89-8894-41EF-A4BC-4D060FC5BB73}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {f62e7045-51eb-40d0-89ce-b51904ef2209}
+	EndGlobalSection
+EndGlobal
