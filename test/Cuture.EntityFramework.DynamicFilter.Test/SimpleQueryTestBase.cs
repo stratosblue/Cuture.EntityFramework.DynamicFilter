@@ -11,37 +11,43 @@ public abstract class SimpleQueryTestBase : DbContextTestBase
     {
         services.AddEntityFrameworkDynamicQueryFilter(options =>
         {
-            options.AddHeadFilter<User>(provider =>
+            options.Entity<User>(builder =>
             {
-                var currentTenant = provider.GetRequiredService<ICurrentTenant>();
-                return currentTenant.Id is null
-                       ? n => true
-                       : n => n.TenantId == currentTenant.Id;
-            }, order: 1);
-            options.AddHeadFilter<User>(provider =>
-            {
-                var currentOrganization = provider.GetRequiredService<ICurrentOrganization>();
-                return currentOrganization.Id is null
-                       ? n => true
-                       : n => n.OrganizationId == currentOrganization.Id;
-            }, order: 2);
-            options.AddTailFilter<User>("SoftDeletion", n => n.IsDeleted == false);
+                builder.AddHeadFilter(provider =>
+                {
+                    var currentTenant = provider.GetRequiredService<ICurrentTenant>();
+                    return currentTenant.Id is null
+                           ? n => true
+                           : n => n.TenantId == currentTenant.Id;
+                }, order: 1);
+                builder.AddHeadFilter(provider =>
+                {
+                    var currentOrganization = provider.GetRequiredService<ICurrentOrganization>();
+                    return currentOrganization.Id is null
+                           ? n => true
+                           : n => n.OrganizationId == currentOrganization.Id;
+                }, order: 2);
+                builder.AddTailFilter("SoftDeletion", n => n.IsDeleted == false);
+            });
 
-            options.AddHeadFilter<Article>(provider =>
+            options.Entity<Article>(builder =>
             {
-                var currentTenant = provider.GetRequiredService<ICurrentTenant>();
-                return currentTenant.Id is null
-                       ? n => true
-                       : n => n.TenantId == currentTenant.Id;
-            }, order: 1);
-            options.AddHeadFilter<Article>(provider =>
-            {
-                var currentOrganization = provider.GetRequiredService<ICurrentOrganization>();
-                return currentOrganization.Id is null
-                       ? n => true
-                       : n => n.OrganizationId == currentOrganization.Id;
-            }, order: 2);
-            options.AddTailFilter<Article>("SoftDeletion", n => n.IsDeleted == false);
+                builder.AddHeadFilter(provider =>
+                {
+                    var currentTenant = provider.GetRequiredService<ICurrentTenant>();
+                    return currentTenant.Id is null
+                           ? n => true
+                           : n => n.TenantId == currentTenant.Id;
+                }, order: 1);
+                builder.AddHeadFilter(provider =>
+                {
+                    var currentOrganization = provider.GetRequiredService<ICurrentOrganization>();
+                    return currentOrganization.Id is null
+                           ? n => true
+                           : n => n.OrganizationId == currentOrganization.Id;
+                }, order: 2);
+                builder.AddTailFilter("SoftDeletion", n => n.IsDeleted == false);
+            });
         });
 
         return services;

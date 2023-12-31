@@ -3,8 +3,10 @@
 
 An extension library for `EntityFrameworkCore` to support dynamic global filters. 一个 `EntityFrameworkCore` 的拓展库，用于支持动态的全局过滤器。
 
- - 动态全局过滤器支持;
+ - 动态全局过滤器;
+ - 支持自由组合多个过滤器;
  - 全局过滤器支持排序与位置设置（针对联合索引场景，`EntityFrameworkCore` 的 `QueryFilter` 只能附加到查询头部，对联合索引不友好）;
+ - 支持查询时忽略部分过滤器;
  - 目标框架 `net7.0`+;
 
 ### NOTE!!!
@@ -33,22 +35,26 @@ services.AddDbContext<XXXXContext>((IServiceProvider serviceProvider, DbContextO
 ```C#
 services.AddEntityFrameworkDynamicQueryFilter(options =>
 {
-    //针对实体 User 添加头部表达式过滤器，表达式过滤器根据查询时 ServiceProvider 中的服务状态动态构造，表达式将在查询 User 时拼接到查询头部
-    options.AddHeadFilter<User>(provider =>
+    // 配置实体 User 的过滤器
+    options.Entity<User>(builder =>
     {
-        var currentTenant = provider.GetRequiredService<ICurrentTenant>();
-        return currentTenant.Id is null
-                ? n => true
-                : n => n.TenantId == currentTenant.Id;
+        //添加头部表达式过滤器，表达式过滤器根据查询时 ServiceProvider 中的服务状态动态构造，表达式将在查询 User 时拼接到查询头部
+        builder.AddHeadFilter(provider =>
+        {
+            var currentTenant = provider.GetRequiredService<ICurrentTenant>();
+            return currentTenant.Id is null
+                    ? n => true
+                    : n => n.TenantId == currentTenant.Id;
+        });
+
+        //添加过滤器 MyQueryFilter（从DI容器中获取），其名称、位置、排序由 MyQueryFilter 内部确定
+        builder.AddFilter<MyQueryFilter>();
+
+        //添加尾部表达式过滤器，其名称为 SoftDeletion，表达式将在查询 User 时拼接到查询末尾
+        builder.AddTailFilter("SoftDeletion", n => n.IsDeleted == false);
+
+        //Other options
     });
-
-    //针对实体 User 添加过滤器 MyQueryFilter（从DI容器中获取），其名称、位置、排序由 MyQueryFilter 内部确定
-    options.AddFilter<MyQueryFilter, User>();
-
-    //添加针对实体 User 的尾部表达式过滤器，其名称为 SoftDeletion，表达式将在查询 User 时拼接到查询末尾
-    options.AddTailFilter<User>("SoftDeletion", n => n.IsDeleted == false);
-
-    //Other options
 });
 ```
 

@@ -244,8 +244,8 @@ internal sealed class DynamicFilterQueryExpressionInterceptor
                                                                .OrderBy(static m => m.Order)
                                                                .ToList();
                         context.HeadQueryFilters = queryFilters.Where(m => m.IsEnable && !IsIgnoredFilter(m) && m.Place != DynamicQueryFilterPlace.Tail)
-                                                                .OrderByDescending(static m => m.Order)
-                                                                .ToList();
+                                                               .OrderByDescending(static m => m.Order)
+                                                               .ToList();
 
                         //没有表达式，则为裸查询，直接添加筛选
                         if (context.FirstExpression is null)

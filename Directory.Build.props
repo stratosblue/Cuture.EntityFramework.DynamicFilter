@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>1.0.0-preview-001</Version>
+    <Version>1.0.0-preview-002</Version>
 
     <Description>An extension library for `EntityFrameworkCore` to support dynamic global filters. 一个 `EntityFrameworkCore` 的拓展库，用于支持动态的全局过滤器。</Description>
 
@@ -24,7 +24,7 @@
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>$(PackageProjectUrl)</RepositoryUrl>
 
-    <PackageTags>entityframework entity-framework ef filter dynamicfilter dynamic-filter globalfilter global-filter</PackageTags>
+    <PackageTags>entityframework entity-framework entityframeworkcore entity-framework-core ef efcore ef-core filter dynamicfilter dynamic-filter globalfilter global-filter</PackageTags>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'Release'">

@@ -19,9 +19,9 @@ internal sealed class DynamicQueryFilterFactoryContainer
     /// <inheritdoc cref="DynamicQueryFilterFactoryContainer"/>
     public DynamicQueryFilterFactoryContainer(IOptions<EntityFrameworkDynamicFilterOptions> optionsAccessor)
     {
-        var collection = optionsAccessor.Value.QueryFilterCollection;
+        var collection = optionsAccessor.Value.QueryFilterMetadataCollection;
 
-        QueryFilterFactories = collection.ToImmutableDictionary(m => m.Key, m => m.Value.ToArray());
+        QueryFilterFactories = collection.ToImmutableDictionary(m => m.Key, m => m.Value.DynamicQueryFilterFactories.ToArray());
     }
 
     #endregion Public 构造函数
