@@ -1,0 +1,25 @@
+<Solution>
+  <Folder Name="/benchmark/">
+    <Project Path="benchmark/Cuture.EntityFramework.DynamicFilter.Benchmark/Cuture.EntityFramework.DynamicFilter.Benchmark.csproj" />
+  </Folder>
+  <Folder Name="/solution items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+    <File Path="CodeMaid.config" />
+    <File Path="Directory.Build.props" />
+    <File Path="global.json" />
+    <File Path="LICENSE.txt" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/solution items/.github/" />
+  <Folder Name="/solution items/.github/workflows/">
+    <File Path=".github/workflows/PublishNugetPackage.yml" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Cuture.EntityFramework.DynamicFilter/Cuture.EntityFramework.DynamicFilter.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/Cuture.EntityFramework.DynamicFilter.Test/Cuture.EntityFramework.DynamicFilter.Test.csproj" />
+  </Folder>
+</Solution>

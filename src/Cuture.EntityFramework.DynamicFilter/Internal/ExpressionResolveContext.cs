@@ -1,5 +1,4 @@
 ﻿using System.Linq.Expressions;
-using Microsoft.EntityFrameworkCore.Query.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Extensions.Internal;
 
@@ -50,9 +49,9 @@ internal ref struct ExpressionResolveContext
     public Expression? LastExpression { get; set; }
 
     /// <summary>
-    /// 当前查询的 <see cref="IParameterValues"/>
+    /// 当前查询的 <see cref="ParameterValues"/>
     /// </summary>
-    public required IParameterValues ParameterValues { get; init; }
+    public required ParameterValues ParameterValues { get; init; }
 
     /// <summary>
     /// 尾部查询过滤器

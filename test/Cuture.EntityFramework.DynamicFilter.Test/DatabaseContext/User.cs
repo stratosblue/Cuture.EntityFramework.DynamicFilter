@@ -16,6 +16,6 @@ public class User : ITenantId, IOrganizationId, ISoftDeletion
 
     public override string ToString()
     {
-        return $"{Id}【{Name}】TenantId: {TenantId} , OrganizationId: {OrganizationId} , IsDeleted: {IsDeleted}"; 
+        return $"{Id}【{Name}】TenantId: {TenantId} , OrganizationId: {OrganizationId} , IsDeleted: {IsDeleted}";
     }
 }

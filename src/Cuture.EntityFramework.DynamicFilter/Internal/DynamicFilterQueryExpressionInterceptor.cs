@@ -3,20 +3,22 @@ using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore.Query;
-using Microsoft.EntityFrameworkCore.Query.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Extensions.Internal;
 
-internal sealed class DynamicFilterQueryExpressionInterceptor
+internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilterFactoryScopeContainer queryFilterFactoryScopeContainer)
 {
     #region Public 字段
 
-    public static readonly ImmutableHashSet<string> SupportMethodNames = ImmutableHashSet.Create(nameof(Queryable.Where),
-                                                                                                 nameof(Queryable.Any),
-                                                                                                 nameof(Queryable.First),
-                                                                                                 nameof(Queryable.FirstOrDefault),
-                                                                                                 nameof(Queryable.Last),
-                                                                                                 nameof(Queryable.LastOrDefault));
+    public static readonly ImmutableHashSet<string> SupportMethodNames =
+        [
+            nameof(Queryable.Where),
+            nameof(Queryable.Any),
+            nameof(Queryable.First),
+            nameof(Queryable.FirstOrDefault),
+            nameof(Queryable.Last),
+            nameof(Queryable.LastOrDefault)
+        ];
 
     public static readonly ImmutableHashSet<MethodInfo> SupportMethods;
 
@@ -26,7 +28,7 @@ internal sealed class DynamicFilterQueryExpressionInterceptor
 
     private static readonly MethodInfo s_queryableWhereMethod;
 
-    private readonly DynamicQueryFilterFactoryScopeContainer _queryFilterFactoryScopeContainer;
+    private readonly DynamicQueryFilterFactoryScopeContainer _queryFilterFactoryScopeContainer = queryFilterFactoryScopeContainer ?? throw new ArgumentNullException(nameof(queryFilterFactoryScopeContainer));
 
     #endregion Private 字段
 
@@ -40,21 +42,16 @@ internal sealed class DynamicFilterQueryExpressionInterceptor
             typeof(Expression<>).MakeGenericType(typeof(Func<,>).MakeGenericType(Type.MakeGenericMethodParameter(0), typeof(bool)))
         };
 
-        SupportMethods = SupportMethodNames.Select(name => typeof(Queryable).GetMethod(name, queryMethodParameterTypes)!).ToImmutableHashSet();
+        SupportMethods = [.. SupportMethodNames.Select(name => typeof(Queryable).GetMethod(name, queryMethodParameterTypes)!)];
 
         s_queryableWhereMethod = typeof(Queryable).GetMethod(nameof(Queryable.Where), queryMethodParameterTypes)!;
-    }
-
-    public DynamicFilterQueryExpressionInterceptor(DynamicQueryFilterFactoryScopeContainer queryFilterFactoryScopeContainer)
-    {
-        _queryFilterFactoryScopeContainer = queryFilterFactoryScopeContainer ?? throw new ArgumentNullException(nameof(queryFilterFactoryScopeContainer));
     }
 
     #endregion Public 构造函数
 
     #region Public 方法
 
-    public Expression Resolve(Expression expression, IParameterValues parameterValues)
+    public Expression Resolve(Expression expression, ParameterValues parameterValues)
     {
         int parameterCount = 0;
         bool ignoreQueryFilters = false;
@@ -130,10 +127,19 @@ internal sealed class DynamicFilterQueryExpressionInterceptor
                         {
                             Debug.Assert(methodCallExpression.Arguments.Count == 2);
 
-                            if (methodCallExpression.Arguments[1] is not ParameterExpression parameterExpression
-                                || !context.ParameterValues.ParameterValues.TryGetValue(parameterExpression.Name!, out var filterNameObject)
-                                || filterNameObject is not string filterName
-                                || string.IsNullOrEmpty(filterName))
+                            string? filterName = null;
+#if NET10_0_OR_GREATER
+                            if (methodCallExpression.Arguments[1] is QueryParameterExpression parameterExpression
+                                && context.ParameterValues.TryGetValue(parameterExpression.Name!, out var filterNameObject))
+#else
+                            if (methodCallExpression.Arguments[1] is ParameterExpression parameterExpression
+                                && context.ParameterValues.ParameterValues.TryGetValue(parameterExpression.Name!, out var filterNameObject))
+#endif
+                            {
+                                filterName = filterNameObject as string;
+                            }
+
+                            if (string.IsNullOrEmpty(filterName))
                             {
                                 throw new InvalidOperationException($"Invalid ignore query filter expression \"{methodCallExpression}\".");
                             }
@@ -240,12 +246,16 @@ internal sealed class DynamicFilterQueryExpressionInterceptor
                             return false;
                         }
 
+#pragma warning disable IDE0305
+
                         context.TailQueryFilters = queryFilters.Where(m => m.IsEnable && !IsIgnoredFilter(m) && m.Place == DynamicQueryFilterPlace.Tail)
                                                                .OrderBy(static m => m.Order)
                                                                .ToList();
                         context.HeadQueryFilters = queryFilters.Where(m => m.IsEnable && !IsIgnoredFilter(m) && m.Place != DynamicQueryFilterPlace.Tail)
                                                                .OrderByDescending(static m => m.Order)
                                                                .ToList();
+
+#pragma warning restore IDE0305
 
                         //没有表达式，则为裸查询，直接添加筛选
                         if (context.FirstExpression is null)

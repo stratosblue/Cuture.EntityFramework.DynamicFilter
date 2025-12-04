@@ -3,25 +3,16 @@
 /// <summary>
 /// <see cref="DynamicQueryFilterFactoryContainer"/> 的 Scope 容器
 /// </summary>
-internal sealed class DynamicQueryFilterFactoryScopeContainer
+internal sealed class DynamicQueryFilterFactoryScopeContainer(DynamicQueryFilterFactoryContainer queryFilterFactoryContainer,
+                                                              IServiceProvider serviceProvider)
 {
     #region Private 字段
 
-    private readonly DynamicQueryFilterFactoryContainer _queryFilterFactoryContainer;
+    private readonly DynamicQueryFilterFactoryContainer _queryFilterFactoryContainer = queryFilterFactoryContainer ?? throw new ArgumentNullException(nameof(queryFilterFactoryContainer));
 
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceProvider _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 
     #endregion Private 字段
-
-    #region Public 构造函数
-
-    public DynamicQueryFilterFactoryScopeContainer(DynamicQueryFilterFactoryContainer queryFilterFactoryContainer, IServiceProvider serviceProvider)
-    {
-        _queryFilterFactoryContainer = queryFilterFactoryContainer ?? throw new ArgumentNullException(nameof(queryFilterFactoryContainer));
-        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-    }
-
-    #endregion Public 构造函数
 
     #region Public 方法
 

@@ -1,5 +1,4 @@
 ﻿using System.Linq.Expressions;
-using Microsoft.EntityFrameworkCore.Query.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Extensions.Utils;
 
@@ -35,7 +34,7 @@ internal static class QueryFilterLambdaExpressionCombiner
 
         private int _parameterCount;
 
-        private IParameterValues? _parameterValues;
+        private ParameterValues? _parameterValues;
 
         private IEnumerable<IDynamicQueryFilter> _queryFilters = null!;
 

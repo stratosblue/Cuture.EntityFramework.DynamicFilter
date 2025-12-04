@@ -6,7 +6,7 @@ namespace Microsoft.EntityFrameworkCore.Extensions;
 /// 抽象 <see cref="IDynamicQueryFilter"/>
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public abstract class DynamicQueryFilter<T> : IDynamicQueryFilter<T>
+public abstract class DynamicQueryFilter<T>(string? name = null) : IDynamicQueryFilter<T>
 {
     #region Public 属性
 
@@ -20,7 +20,7 @@ public abstract class DynamicQueryFilter<T> : IDynamicQueryFilter<T>
     public virtual bool IsEnable { get; } = true;
 
     /// <inheritdoc/>
-    public virtual string? Name { get; init; }
+    public virtual string? Name { get; init; } = name;
 
     /// <inheritdoc/>
     public virtual int Order { get; } = IDynamicQueryFilter.DefaultOrder;
@@ -32,14 +32,4 @@ public abstract class DynamicQueryFilter<T> : IDynamicQueryFilter<T>
     public LambdaExpression UnderlyingExpression => Expression;
 
     #endregion Public 属性
-
-    #region Protected 构造函数
-
-    /// <inheritdoc cref="DynamicQueryFilter{T}"/>
-    protected DynamicQueryFilter(string? name = null)
-    {
-        Name = name;
-    }
-
-    #endregion Protected 构造函数
 }

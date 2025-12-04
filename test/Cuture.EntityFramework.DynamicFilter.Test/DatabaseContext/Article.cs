@@ -23,6 +23,6 @@ public class Article : ITenantId, IOrganizationId, ISoftDeletion
 
     public override string ToString()
     {
-        return $"{Id}【{Title}】TenantId: {TenantId} , OrganizationId: {OrganizationId} , IsDeleted: {IsDeleted}"; 
+        return $"{Id}【{Title}】TenantId: {TenantId} , OrganizationId: {OrganizationId} , IsDeleted: {IsDeleted}";
     }
 }

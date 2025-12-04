@@ -1,4 +1,6 @@
-﻿using System.Linq.Expressions;
+﻿#pragma warning disable IDE0130
+
+using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore.Extensions;
 using Microsoft.EntityFrameworkCore.Query.Internal;
@@ -12,11 +14,11 @@ public static class EntityFrameworkDynamicFilterQueryableExtensions
 {
     #region Internal 字段
 
-    internal static readonly MethodInfo EFIgnoreQueryFiltersMethodInfo = typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetMethod(nameof(EntityFrameworkQueryableExtensions.IgnoreQueryFilters), new Type[] { typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0)) })!;
+    internal static readonly MethodInfo EFIgnoreQueryFiltersMethodInfo = typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetMethod(nameof(EntityFrameworkQueryableExtensions.IgnoreQueryFilters), [typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0))])!;
 
-    internal static readonly MethodInfo IgnoreQueryFilterByNameMethodInfo = typeof(EntityFrameworkDynamicFilterQueryableExtensions).GetTypeInfo().GetMethod(nameof(IgnoreQueryFilter), new Type[] { typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0)), typeof(string) })!;
+    internal static readonly MethodInfo IgnoreQueryFilterByNameMethodInfo = typeof(EntityFrameworkDynamicFilterQueryableExtensions).GetTypeInfo().GetMethod(nameof(IgnoreQueryFilter), [typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0)), typeof(string)])!;
 
-    internal static readonly MethodInfo IgnoreQueryFilterByTypeMethodInfo = typeof(EntityFrameworkDynamicFilterQueryableExtensions).GetTypeInfo().GetMethod(nameof(IgnoreQueryFilter), new Type[] { typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0)) })!;
+    internal static readonly MethodInfo IgnoreQueryFilterByTypeMethodInfo = typeof(EntityFrameworkDynamicFilterQueryableExtensions).GetTypeInfo().GetMethod(nameof(IgnoreQueryFilter), [typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0))])!;
 
     #endregion Internal 字段
 

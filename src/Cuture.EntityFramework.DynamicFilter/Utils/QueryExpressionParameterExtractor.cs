@@ -1,6 +1,5 @@
 ﻿using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
-using Microsoft.EntityFrameworkCore.Query.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Extensions.Utils;
 
@@ -42,7 +41,7 @@ internal static class QueryExpressionParameterExtractor
         return Extracting(expression, context.ParameterValues, ref context.ParameterCount);
     }
 
-    public static Expression Extracting(Expression expression, IParameterValues parameterValues, ref int parameterCount)
+    public static Expression Extracting(Expression expression, ParameterValues parameterValues, ref int parameterCount)
     {
         return ExtractingVisitor.Extracting(expression, parameterValues, ref parameterCount);
     }
@@ -57,13 +56,13 @@ internal static class QueryExpressionParameterExtractor
 
         private int _parameterCount;
 
-        private IParameterValues? _parameterValues;
+        private ParameterValues? _parameterValues;
 
         #endregion Private 字段
 
         #region Public 方法
 
-        public Expression Extracting(Expression expression, IParameterValues parameterValues, ref int parameterCount)
+        public Expression Extracting(Expression expression, ParameterValues parameterValues, ref int parameterCount)
         {
             _parameterCount = parameterCount;
             _parameterValues = parameterValues;
@@ -93,9 +92,14 @@ internal static class QueryExpressionParameterExtractor
 
                 var parameterName = GetParameterName(_parameterCount++);
 
+#if NET10_0_OR_GREATER
+                _parameterValues!.Add(parameterName, value);
+                //TODO QueryParameterExpression 的剩余两个参数不指定，是否会有相关的问题？
+                return new Query.QueryParameterExpression(name: parameterName, type: node.Type);
+#else
                 _parameterValues!.AddParameter(parameterName, value);
-
                 return Expression.Parameter(node.Type, parameterName);
+#endif
             }
             return base.VisitMember(node);
         }

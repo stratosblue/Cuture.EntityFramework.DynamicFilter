@@ -5,6 +5,12 @@ namespace Cuture.EntityFramework.DynamicFilter.Test;
 [TestClass]
 public class SimpleQueryTest : SimpleQueryTestBase
 {
+    #region Public 属性
+
+    public TestContext TestContext { get; set; }
+
+    #endregion Public 属性
+
     #region Public 方法
 
     [TestMethod]
@@ -12,8 +18,8 @@ public class SimpleQueryTest : SimpleQueryTestBase
     {
         var dbContext = GetTestEFDbContext();
 
-        Assert.IsTrue(await dbContext.Users.Where(m => m.Name.Length > 1).AnyAsync());
-        Assert.IsTrue(await dbContext.Articles.Where(m => m.Title.Length > 1).AnyAsync());
+        Assert.IsTrue(await dbContext.Users.Where(m => m.Name.Length > 1).AnyAsync(TestContext.CancellationToken));
+        Assert.IsTrue(await dbContext.Articles.Where(m => m.Title.Length > 1).AnyAsync(TestContext.CancellationToken));
 
         foreach (var userGroup in SeedData.Users.GroupBy(m => m.TenantId))
         {
@@ -21,18 +27,18 @@ public class SimpleQueryTest : SimpleQueryTestBase
 
             ChangeTenant(null);
 
-            Assert.IsTrue(await dbContext.Users.Where(m => m.Name.Length > 1).AnyAsync(m => m.TenantId == tenantId));
-            Assert.IsTrue(await dbContext.Articles.Where(m => m.Title.Length > 1).AnyAsync(m => m.TenantId == tenantId));
+            Assert.IsTrue(await dbContext.Users.Where(m => m.Name.Length > 1).AnyAsync(m => m.TenantId == tenantId, TestContext.CancellationToken));
+            Assert.IsTrue(await dbContext.Articles.Where(m => m.Title.Length > 1).AnyAsync(m => m.TenantId == tenantId, TestContext.CancellationToken));
 
             ChangeTenant(tenantId + 1);
 
-            Assert.IsFalse(await dbContext.Users.Where(m => m.Name.Length > 1).AnyAsync(m => m.TenantId == tenantId));
-            Assert.IsFalse(await dbContext.Articles.Where(m => m.Title.Length > 1).AnyAsync(m => m.TenantId == tenantId));
+            Assert.IsFalse(await dbContext.Users.Where(m => m.Name.Length > 1).AnyAsync(m => m.TenantId == tenantId, TestContext.CancellationToken));
+            Assert.IsFalse(await dbContext.Articles.Where(m => m.Title.Length > 1).AnyAsync(m => m.TenantId == tenantId, TestContext.CancellationToken));
 
             ChangeTenant(tenantId);
 
-            Assert.IsTrue(await dbContext.Users.Where(m => m.Name.Length > 1).AnyAsync(m => m.TenantId == tenantId));
-            Assert.IsTrue(await dbContext.Articles.Where(m => m.Title.Length > 1).AnyAsync(m => m.TenantId == tenantId));
+            Assert.IsTrue(await dbContext.Users.Where(m => m.Name.Length > 1).AnyAsync(m => m.TenantId == tenantId, TestContext.CancellationToken));
+            Assert.IsTrue(await dbContext.Articles.Where(m => m.Title.Length > 1).AnyAsync(m => m.TenantId == tenantId, TestContext.CancellationToken));
         }
     }
 
@@ -41,14 +47,14 @@ public class SimpleQueryTest : SimpleQueryTestBase
     {
         var dbContext = GetTestEFDbContext();
 
-        var allUserCount = await dbContext.Users.Where(m => m.Name.Length > 1).IgnoreQueryFilters().CountAsync();
-        var allArticleCount = await dbContext.Articles.Where(m => m.Title.Length > 1).IgnoreQueryFilters().CountAsync();
+        var allUserCount = await dbContext.Users.Where(m => m.Name.Length > 1).IgnoreQueryFilters().CountAsync(TestContext.CancellationToken);
+        var allArticleCount = await dbContext.Articles.Where(m => m.Title.Length > 1).IgnoreQueryFilters().CountAsync(TestContext.CancellationToken);
 
         Assert.AreEqual(SeedData.Users.Where(m => m.Name.Length > 1).Count(), allUserCount);
         Assert.AreEqual(SeedData.Articles.Where(m => m.Title.Length > 1).Count(), allArticleCount);
 
-        var userCount = await dbContext.Users.Where(m => m.Name.Length > 1).CountAsync();
-        var articleCount = await dbContext.Articles.Where(m => m.Title.Length > 1).Where(m => m.Title.Length > 1).CountAsync();
+        var userCount = await dbContext.Users.Where(m => m.Name.Length > 1).CountAsync(TestContext.CancellationToken);
+        var articleCount = await dbContext.Articles.Where(m => m.Title.Length > 1).Where(m => m.Title.Length > 1).CountAsync(TestContext.CancellationToken);
 
         Assert.AreEqual(SeedData.Users.Where(m => m.Name.Length > 1).Count(m => !m.IsDeleted), userCount);
         Assert.AreEqual(SeedData.Articles.Where(m => m.Title.Length > 1).Count(m => !m.IsDeleted), articleCount);
@@ -68,31 +74,31 @@ public class SimpleQueryTest : SimpleQueryTestBase
                 ChangeTenant(tenantId);
                 ChangeOrganization(null);
 
-                var users = await dbContext.Users.Where(m => m.Name.Length > 1).ToListAsync();
-                var articles = await dbContext.Articles.Where(m => m.Title.Length > 1).ToListAsync();
+                var users = await dbContext.Users.Where(m => m.Name.Length > 1).ToListAsync(TestContext.CancellationToken);
+                var articles = await dbContext.Articles.Where(m => m.Title.Length > 1).ToListAsync(TestContext.CancellationToken);
 
-                Assert.AreEqual(SeedData.Users.Where(m => m.Name.Length > 1).Count(m => m.TenantId == tenantId && !m.IsDeleted), users.Count);
-                Assert.AreEqual(SeedData.Articles.Where(m => m.Title.Length > 1).Count(m => m.TenantId == tenantId && !m.IsDeleted), articles.Count);
+                Assert.HasCount(SeedData.Users.Where(m => m.Name.Length > 1).Count(m => m.TenantId == tenantId && !m.IsDeleted), users);
+                Assert.HasCount(SeedData.Articles.Where(m => m.Title.Length > 1).Count(m => m.TenantId == tenantId && !m.IsDeleted), articles);
 
-                users = await dbContext.Users.Where(m => m.Name.Length > 1).IgnoreQueryFilter("SoftDeletion").ToListAsync();
-                articles = await dbContext.Articles.Where(m => m.Title.Length > 1).IgnoreQueryFilter("SoftDeletion").ToListAsync();
+                users = await dbContext.Users.Where(m => m.Name.Length > 1).IgnoreQueryFilter("SoftDeletion").ToListAsync(TestContext.CancellationToken);
+                articles = await dbContext.Articles.Where(m => m.Title.Length > 1).IgnoreQueryFilter("SoftDeletion").ToListAsync(TestContext.CancellationToken);
 
-                Assert.AreEqual(SeedData.Users.Where(m => m.Name.Length > 1).Count(m => m.TenantId == tenantId), users.Count);
-                Assert.AreEqual(SeedData.Articles.Where(m => m.Title.Length > 1).Count(m => m.TenantId == tenantId), articles.Count);
+                Assert.HasCount(SeedData.Users.Where(m => m.Name.Length > 1).Count(m => m.TenantId == tenantId), users);
+                Assert.HasCount(SeedData.Articles.Where(m => m.Title.Length > 1).Count(m => m.TenantId == tenantId), articles);
 
                 ChangeOrganization(organizationId);
 
-                users = await dbContext.Users.Where(m => m.Name.Length > 1).ToListAsync();
-                articles = await dbContext.Articles.Where(m => m.Title.Length > 1).ToListAsync();
+                users = await dbContext.Users.Where(m => m.Name.Length > 1).ToListAsync(TestContext.CancellationToken);
+                articles = await dbContext.Articles.Where(m => m.Title.Length > 1).ToListAsync(TestContext.CancellationToken);
 
-                Assert.AreEqual(SeedData.Users.Where(m => m.Name.Length > 1).Count(m => m.TenantId == tenantId && m.OrganizationId == organizationId && !m.IsDeleted), users.Count);
-                Assert.AreEqual(SeedData.Articles.Where(m => m.Title.Length > 1).Count(m => m.TenantId == tenantId && m.OrganizationId == organizationId && !m.IsDeleted), articles.Count);
+                Assert.HasCount(SeedData.Users.Where(m => m.Name.Length > 1).Count(m => m.TenantId == tenantId && m.OrganizationId == organizationId && !m.IsDeleted), users);
+                Assert.HasCount(SeedData.Articles.Where(m => m.Title.Length > 1).Count(m => m.TenantId == tenantId && m.OrganizationId == organizationId && !m.IsDeleted), articles);
 
-                users = await dbContext.Users.Where(m => m.Name.Length > 1).IgnoreQueryFilter("SoftDeletion").ToListAsync();
-                articles = await dbContext.Articles.Where(m => m.Title.Length > 1).IgnoreQueryFilter("SoftDeletion").ToListAsync();
+                users = await dbContext.Users.Where(m => m.Name.Length > 1).IgnoreQueryFilter("SoftDeletion").ToListAsync(TestContext.CancellationToken);
+                articles = await dbContext.Articles.Where(m => m.Title.Length > 1).IgnoreQueryFilter("SoftDeletion").ToListAsync(TestContext.CancellationToken);
 
-                Assert.AreEqual(SeedData.Users.Where(m => m.Name.Length > 1).Count(m => m.TenantId == tenantId && m.OrganizationId == organizationId), users.Count);
-                Assert.AreEqual(SeedData.Articles.Where(m => m.Title.Length > 1).Count(m => m.TenantId == tenantId && m.OrganizationId == organizationId), articles.Count);
+                Assert.HasCount(SeedData.Users.Where(m => m.Name.Length > 1).Count(m => m.TenantId == tenantId && m.OrganizationId == organizationId), users);
+                Assert.HasCount(SeedData.Articles.Where(m => m.Title.Length > 1).Count(m => m.TenantId == tenantId && m.OrganizationId == organizationId), articles);
             }
         }
     }
@@ -102,17 +108,17 @@ public class SimpleQueryTest : SimpleQueryTestBase
     {
         var dbContext = GetTestEFDbContext();
 
-        var allUsers = await dbContext.Users.Where(m => m.Name.Length > 1).IgnoreQueryFilters().ToListAsync();
-        var allArticles = await dbContext.Articles.Where(m => m.Title.Length > 1).IgnoreQueryFilters().ToListAsync();
+        var allUsers = await dbContext.Users.Where(m => m.Name.Length > 1).IgnoreQueryFilters().ToListAsync(TestContext.CancellationToken);
+        var allArticles = await dbContext.Articles.Where(m => m.Title.Length > 1).IgnoreQueryFilters().ToListAsync(TestContext.CancellationToken);
 
-        Assert.AreEqual(SeedData.Users.Where(m => m.Name.Length > 1).Count(), allUsers.Count);
-        Assert.AreEqual(SeedData.Articles.Where(m => m.Title.Length > 1).Count(), allArticles.Count);
+        Assert.HasCount(SeedData.Users.Where(m => m.Name.Length > 1).Count(), allUsers);
+        Assert.HasCount(SeedData.Articles.Where(m => m.Title.Length > 1).Count(), allArticles);
 
-        var users = await dbContext.Users.Where(m => m.Name.Length > 1).ToListAsync();
-        var articles = await dbContext.Articles.Where(m => m.Title.Length > 1).ToListAsync();
+        var users = await dbContext.Users.Where(m => m.Name.Length > 1).ToListAsync(TestContext.CancellationToken);
+        var articles = await dbContext.Articles.Where(m => m.Title.Length > 1).ToListAsync(TestContext.CancellationToken);
 
-        Assert.AreEqual(SeedData.Users.Where(m => m.Name.Length > 1).Count(m => !m.IsDeleted), users.Count);
-        Assert.AreEqual(SeedData.Articles.Where(m => m.Title.Length > 1).Count(m => !m.IsDeleted), articles.Count);
+        Assert.HasCount(SeedData.Users.Where(m => m.Name.Length > 1).Count(m => !m.IsDeleted), users);
+        Assert.HasCount(SeedData.Articles.Where(m => m.Title.Length > 1).Count(m => !m.IsDeleted), articles);
     }
 
     [TestMethod]
@@ -120,11 +126,11 @@ public class SimpleQueryTest : SimpleQueryTestBase
     {
         var dbContext = GetTestEFDbContext();
 
-        var users = await dbContext.Users.Where(m => m.Name.Length > 1).IgnoreQueryFilter("SoftDeletion").ToListAsync();
-        var articles = await dbContext.Articles.Where(m => m.Title.Length > 1).IgnoreQueryFilter("SoftDeletion").ToListAsync();
+        var users = await dbContext.Users.Where(m => m.Name.Length > 1).IgnoreQueryFilter("SoftDeletion").ToListAsync(TestContext.CancellationToken);
+        var articles = await dbContext.Articles.Where(m => m.Title.Length > 1).IgnoreQueryFilter("SoftDeletion").ToListAsync(TestContext.CancellationToken);
 
-        Assert.AreEqual(SeedData.Users.Where(m => m.Name.Length > 1).Count(), users.Count);
-        Assert.AreEqual(SeedData.Articles.Where(m => m.Title.Length > 1).Count(), articles.Count);
+        Assert.HasCount(SeedData.Users.Where(m => m.Name.Length > 1).Count(), users);
+        Assert.HasCount(SeedData.Articles.Where(m => m.Title.Length > 1).Count(), articles);
     }
 
     [TestMethod]
@@ -132,14 +138,14 @@ public class SimpleQueryTest : SimpleQueryTestBase
     {
         var dbContext = GetTestEFDbContext();
 
-        var allUsers = await dbContext.Users.Where(m => m.Name.Length > 1).OrderByDescending(m => m.Id).IgnoreQueryFilters().ToListAsync();
-        var allArticles = await dbContext.Articles.Where(m => m.Title.Length > 1).OrderByDescending(m => m.Id).IgnoreQueryFilters().ToListAsync();
+        var allUsers = await dbContext.Users.Where(m => m.Name.Length > 1).OrderByDescending(m => m.Id).IgnoreQueryFilters().ToListAsync(TestContext.CancellationToken);
+        var allArticles = await dbContext.Articles.Where(m => m.Title.Length > 1).OrderByDescending(m => m.Id).IgnoreQueryFilters().ToListAsync(TestContext.CancellationToken);
 
         var seedUsers = SeedData.Users.Where(m => m.Name.Length > 1).OrderByDescending(m => m.Id).ToList();
         var seedArticles = SeedData.Articles.Where(m => m.Title.Length > 1).OrderByDescending(m => m.Id).ToList();
 
-        Assert.AreEqual(seedUsers.Count, allUsers.Count);
-        Assert.AreEqual(seedArticles.Count, allArticles.Count);
+        Assert.HasCount(seedUsers.Count, allUsers);
+        Assert.HasCount(seedArticles.Count, allArticles);
 
         for (int i = 0; i < seedUsers.Count; i++)
         {
@@ -151,14 +157,14 @@ public class SimpleQueryTest : SimpleQueryTestBase
             Assert.AreEqual(seedArticles[i].Id, allArticles[i].Id);
         }
 
-        var users = await dbContext.Users.Where(m => m.Name.Length > 1).OrderByDescending(m => m.Id).ToListAsync();
-        var articles = await dbContext.Articles.Where(m => m.Title.Length > 1).OrderByDescending(m => m.Id).ToListAsync();
+        var users = await dbContext.Users.Where(m => m.Name.Length > 1).OrderByDescending(m => m.Id).ToListAsync(TestContext.CancellationToken);
+        var articles = await dbContext.Articles.Where(m => m.Title.Length > 1).OrderByDescending(m => m.Id).ToListAsync(TestContext.CancellationToken);
 
         seedUsers = SeedData.Users.Where(m => m.Name.Length > 1).Where(m => !m.IsDeleted).OrderByDescending(m => m.Id).ToList();
         seedArticles = SeedData.Articles.Where(m => m.Title.Length > 1).Where(m => !m.IsDeleted).OrderByDescending(m => m.Id).ToList();
 
-        Assert.AreEqual(seedUsers.Count, users.Count);
-        Assert.AreEqual(seedArticles.Count, articles.Count);
+        Assert.HasCount(seedUsers.Count, users);
+        Assert.HasCount(seedArticles.Count, articles);
 
         for (int i = 0; i < seedUsers.Count; i++)
         {

@@ -3,7 +3,7 @@
 /// <summary>
 /// 实体的动态过滤器元数据
 /// </summary>
-public class EntityDynamicQueryFilterMetadata
+public class EntityDynamicQueryFilterMetadata(Type type)
 {
     #region Public 属性
 
@@ -15,17 +15,7 @@ public class EntityDynamicQueryFilterMetadata
     /// <summary>
     /// 目标类型
     /// </summary>
-    public Type Type { get; set; }
+    public Type Type { get; set; } = type ?? throw new ArgumentNullException(nameof(type));
 
     #endregion Public 属性
-
-    #region Public 构造函数
-
-    /// <inheritdoc cref="EntityDynamicQueryFilterMetadata"/>
-    public EntityDynamicQueryFilterMetadata(Type type)
-    {
-        Type = type ?? throw new ArgumentNullException(nameof(type));
-    }
-
-    #endregion Public 构造函数
 }

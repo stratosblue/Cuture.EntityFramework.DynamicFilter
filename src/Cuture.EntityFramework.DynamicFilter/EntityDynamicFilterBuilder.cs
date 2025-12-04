@@ -7,23 +7,13 @@ namespace Microsoft.EntityFrameworkCore.Extensions;
 /// <typeparamref name="TEntity"/> 的动态过滤器构建器
 /// </summary>
 /// <typeparam name="TEntity"></typeparam>
-public class EntityDynamicFilterBuilder<TEntity>
+public class EntityDynamicFilterBuilder<TEntity>(EntityDynamicQueryFilterMetadata metadata)
 {
     #region Private 字段
 
-    private readonly EntityDynamicQueryFilterMetadata _metadata;
+    private readonly EntityDynamicQueryFilterMetadata _metadata = metadata ?? throw new ArgumentNullException(nameof(metadata));
 
     #endregion Private 字段
-
-    #region Public 构造函数
-
-    /// <inheritdoc cref="EntityDynamicFilterBuilder{TEntity}"/>
-    public EntityDynamicFilterBuilder(EntityDynamicQueryFilterMetadata metadata)
-    {
-        _metadata = metadata ?? throw new ArgumentNullException(nameof(metadata));
-    }
-
-    #endregion Public 构造函数
 
     #region DelegationFilter
 
