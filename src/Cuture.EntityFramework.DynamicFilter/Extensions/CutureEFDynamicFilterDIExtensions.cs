@@ -1,4 +1,7 @@
-﻿using System.ComponentModel;
+﻿#pragma warning disable IDE0130
+
+using System.ComponentModel;
+using Cuture.EntityFramework.DynamicFilter;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -9,7 +12,7 @@ namespace Microsoft.EntityFrameworkCore.Extensions;
 ///
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public static class CutureEntityFrameworkDynamicFilterExtensions
+public static class CutureEFDynamicFilterDIExtensions
 {
     #region Public 方法
 

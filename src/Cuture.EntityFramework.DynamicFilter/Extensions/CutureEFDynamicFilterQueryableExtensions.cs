@@ -1,24 +1,26 @@
 ﻿#pragma warning disable IDE0130
 
+using System.ComponentModel;
 using System.Linq.Expressions;
 using System.Reflection;
-using Microsoft.EntityFrameworkCore.Extensions;
+using Cuture.EntityFramework.DynamicFilter;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 
-namespace Microsoft.EntityFrameworkCore;
+namespace Microsoft.EntityFrameworkCore.Extensions;
 
 /// <summary>
 /// DynamicFilterQueryable拓展
 /// </summary>
-public static class EntityFrameworkDynamicFilterQueryableExtensions
+[EditorBrowsable(EditorBrowsableState.Never)]
+public static class CutureEFDynamicFilterQueryableExtensions
 {
     #region Internal 字段
 
     internal static readonly MethodInfo EFIgnoreQueryFiltersMethodInfo = typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetMethod(nameof(EntityFrameworkQueryableExtensions.IgnoreQueryFilters), [typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0))])!;
 
-    internal static readonly MethodInfo IgnoreQueryFilterByNameMethodInfo = typeof(EntityFrameworkDynamicFilterQueryableExtensions).GetTypeInfo().GetMethod(nameof(IgnoreQueryFilter), [typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0)), typeof(string)])!;
+    internal static readonly MethodInfo IgnoreQueryFilterByNameMethodInfo = typeof(CutureEFDynamicFilterQueryableExtensions).GetTypeInfo().GetMethod(nameof(IgnoreQueryFilter), [typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0)), typeof(string)])!;
 
-    internal static readonly MethodInfo IgnoreQueryFilterByTypeMethodInfo = typeof(EntityFrameworkDynamicFilterQueryableExtensions).GetTypeInfo().GetMethod(nameof(IgnoreQueryFilter), [typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0))])!;
+    internal static readonly MethodInfo IgnoreQueryFilterByTypeMethodInfo = typeof(CutureEFDynamicFilterQueryableExtensions).GetTypeInfo().GetMethod(nameof(IgnoreQueryFilter), [typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0))])!;
 
     #endregion Internal 字段
 

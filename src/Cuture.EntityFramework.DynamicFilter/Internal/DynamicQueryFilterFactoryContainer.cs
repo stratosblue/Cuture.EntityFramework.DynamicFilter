@@ -1,7 +1,7 @@
 ﻿using System.Collections.Immutable;
 using Microsoft.Extensions.Options;
 
-namespace Microsoft.EntityFrameworkCore.Extensions.Internal;
+namespace Cuture.EntityFramework.DynamicFilter.Internal;
 
 /// <summary>
 /// <see cref="IDynamicQueryFilter"/> 工厂容器，用于创建 <see cref="IDynamicQueryFilter"/>

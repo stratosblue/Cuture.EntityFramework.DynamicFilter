@@ -1,7 +1,7 @@
 ﻿using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 
-namespace Microsoft.EntityFrameworkCore.Extensions.Utils;
+namespace Cuture.EntityFramework.DynamicFilter.Utils;
 
 internal static class QueryExpressionParameterExtractor
 {
@@ -95,7 +95,7 @@ internal static class QueryExpressionParameterExtractor
 #if NET10_0_OR_GREATER
                 _parameterValues!.Add(parameterName, value);
                 //TODO QueryParameterExpression 的剩余两个参数不指定，是否会有相关的问题？
-                return new Query.QueryParameterExpression(name: parameterName, type: node.Type);
+                return new Microsoft.EntityFrameworkCore.Query.QueryParameterExpression(name: parameterName, type: node.Type);
 #else
                 _parameterValues!.AddParameter(parameterName, value);
                 return Expression.Parameter(node.Type, parameterName);

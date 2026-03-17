@@ -1,6 +1,6 @@
 ﻿using System.Linq.Expressions;
 
-namespace Microsoft.EntityFrameworkCore.Extensions;
+namespace Cuture.EntityFramework.DynamicFilter;
 
 /// <summary>
 /// 基于表达式的 <inheritdoc cref="IDynamicQueryFilter{T}"/>

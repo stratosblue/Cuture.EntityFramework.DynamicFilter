@@ -1,6 +1,6 @@
 ﻿using System.Linq.Expressions;
 
-namespace Microsoft.EntityFrameworkCore.Extensions.Utils;
+namespace Cuture.EntityFramework.DynamicFilter.Utils;
 
 internal static class ExpressionParameterReplacer
 {

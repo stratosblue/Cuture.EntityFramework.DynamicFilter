@@ -1,6 +1,6 @@
 ﻿using System.Linq.Expressions;
 
-namespace Microsoft.EntityFrameworkCore.Extensions.Internal;
+namespace Cuture.EntityFramework.DynamicFilter.Internal;
 
 /// <summary>
 /// 表达式处理上下文

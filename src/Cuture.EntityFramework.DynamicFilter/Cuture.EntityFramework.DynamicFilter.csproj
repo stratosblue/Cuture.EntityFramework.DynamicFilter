@@ -1,8 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <RootNamespace>Microsoft.EntityFrameworkCore.Extensions</RootNamespace>
-
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <IsPackable>true</IsPackable>
@@ -15,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="Microsoft.EntityFrameworkCore.Extensions.Internal;Microsoft.EntityFrameworkCore.Extensions.Utils" />
+    <Using Include="Cuture.EntityFramework.DynamicFilter.Internal;Cuture.EntityFramework.DynamicFilter.Utils" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">

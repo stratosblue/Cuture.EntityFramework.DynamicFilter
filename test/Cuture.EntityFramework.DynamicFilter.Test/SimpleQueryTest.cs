@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Extensions;
 
 namespace Cuture.EntityFramework.DynamicFilter.Test;
 

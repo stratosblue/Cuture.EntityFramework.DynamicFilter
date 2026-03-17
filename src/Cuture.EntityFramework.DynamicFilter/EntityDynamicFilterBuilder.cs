@@ -1,7 +1,7 @@
 ﻿using System.Linq.Expressions;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Microsoft.EntityFrameworkCore.Extensions;
+namespace Cuture.EntityFramework.DynamicFilter;
 
 /// <summary>
 /// <typeparamref name="TEntity"/> 的动态过滤器构建器

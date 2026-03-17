@@ -1,11 +1,16 @@
-﻿using System.Linq.Expressions;
+﻿#pragma warning disable IDE0130
+
+using System.ComponentModel;
+using System.Linq.Expressions;
+using Cuture.EntityFramework.DynamicFilter;
 
 namespace Microsoft.EntityFrameworkCore.Extensions;
 
 /// <summary>
 /// EntityDynamicFilterBuilder 拓展
 /// </summary>
-public static class EntityDynamicFilterBuilderExtensions
+[EditorBrowsable(EditorBrowsableState.Never)]
+public static class CutureEFEntityDynamicFilterBuilderExtensions
 {
     #region ExpressionFilter
 

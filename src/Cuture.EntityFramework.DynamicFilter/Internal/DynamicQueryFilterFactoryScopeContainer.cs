@@ -1,4 +1,4 @@
-﻿namespace Microsoft.EntityFrameworkCore.Extensions.Internal;
+﻿namespace Cuture.EntityFramework.DynamicFilter.Internal;
 
 /// <summary>
 /// <see cref="DynamicQueryFilterFactoryContainer"/> 的 Scope 容器

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace Microsoft.EntityFrameworkCore.Extensions;
+namespace Cuture.EntityFramework.DynamicFilter;
 
 /// <summary>
 /// EntityFrameworkDynamicFilter 选项

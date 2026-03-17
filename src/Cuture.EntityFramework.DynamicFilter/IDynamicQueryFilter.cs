@@ -1,6 +1,6 @@
 ﻿using System.Linq.Expressions;
 
-namespace Microsoft.EntityFrameworkCore.Extensions;
+namespace Cuture.EntityFramework.DynamicFilter;
 
 /// <summary>
 /// 动态 QueryFilter

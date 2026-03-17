@@ -1,4 +1,4 @@
-﻿namespace Microsoft.EntityFrameworkCore.Extensions;
+﻿namespace Cuture.EntityFramework.DynamicFilter;
 
 /// <summary>
 /// 实体的动态过滤器元数据

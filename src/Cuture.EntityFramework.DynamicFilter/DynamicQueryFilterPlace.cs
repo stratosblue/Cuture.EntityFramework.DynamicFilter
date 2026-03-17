@@ -1,4 +1,4 @@
-﻿namespace Microsoft.EntityFrameworkCore.Extensions;
+﻿namespace Cuture.EntityFramework.DynamicFilter;
 
 /// <summary>
 /// 动态过滤器位置枚举

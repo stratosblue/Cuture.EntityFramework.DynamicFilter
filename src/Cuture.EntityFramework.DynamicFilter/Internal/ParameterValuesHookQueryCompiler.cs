@@ -1,6 +1,7 @@
 ﻿#pragma warning disable CS9107
 
 using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 
-namespace Microsoft.EntityFrameworkCore.Extensions.Internal;
+namespace Cuture.EntityFramework.DynamicFilter.Internal;
 
 internal sealed class ParameterValuesHookQueryCompiler(IQueryContextFactory queryContextFactory,
                                                        ICompiledQueryCache compiledQueryCache,

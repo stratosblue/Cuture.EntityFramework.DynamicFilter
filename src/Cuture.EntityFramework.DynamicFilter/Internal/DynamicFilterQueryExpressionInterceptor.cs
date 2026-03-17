@@ -2,9 +2,10 @@
 using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
+using Microsoft.EntityFrameworkCore.Extensions;
 using Microsoft.EntityFrameworkCore.Query;
 
-namespace Microsoft.EntityFrameworkCore.Extensions.Internal;
+namespace Cuture.EntityFramework.DynamicFilter.Internal;
 
 internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilterFactoryScopeContainer queryFilterFactoryScopeContainer)
 {
@@ -123,7 +124,7 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                                                        processedQueryExpression);
                             }
                         }
-                        else if (targetMethod == EntityFrameworkDynamicFilterQueryableExtensions.IgnoreQueryFilterByNameMethodInfo)  //当前方法为按名称忽略筛选器
+                        else if (targetMethod == CutureEFDynamicFilterQueryableExtensions.IgnoreQueryFilterByNameMethodInfo)  //当前方法为按名称忽略筛选器
                         {
                             Debug.Assert(methodCallExpression.Arguments.Count == 2);
 
@@ -168,7 +169,7 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                             }
                         }
                     }
-                    else if (methodCallExpression.Method.GetGenericMethodDefinition() == EntityFrameworkDynamicFilterQueryableExtensions.IgnoreQueryFilterByTypeMethodInfo)  //当前方法为按类型忽略筛选器
+                    else if (methodCallExpression.Method.GetGenericMethodDefinition() == CutureEFDynamicFilterQueryableExtensions.IgnoreQueryFilterByTypeMethodInfo)  //当前方法为按类型忽略筛选器
                     {
                         var genericArguments = methodCallExpression.Method.GetGenericArguments();
                         Debug.Assert(genericArguments.Length == 2);
@@ -177,7 +178,7 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
 
                         return Resolve(methodCallExpression.Arguments[0], ref context);
                     }
-                    else if (methodCallExpression.Method.GetGenericMethodDefinition() == EntityFrameworkDynamicFilterQueryableExtensions.EFIgnoreQueryFiltersMethodInfo)  //当前方法为EF的忽略所有QueryFilter
+                    else if (methodCallExpression.Method.GetGenericMethodDefinition() == CutureEFDynamicFilterQueryableExtensions.EFIgnoreQueryFiltersMethodInfo)  //当前方法为EF的忽略所有QueryFilter
                     {
                         context.IgnoreQueryFilters = true;
                     }
