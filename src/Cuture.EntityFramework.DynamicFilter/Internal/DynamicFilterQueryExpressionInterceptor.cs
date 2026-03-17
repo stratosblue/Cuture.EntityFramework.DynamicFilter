@@ -314,7 +314,19 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                     break;
                 }
 
+#if NET10_0_OR_GREATER
+
+            case QueryParameterExpression or ParameterExpression:
+                //忽略参数表达式
+                break;
+#endif
+
             default:
+                //忽略参数表达式
+                if (expression.NodeType == ExpressionType.Parameter)
+                {
+                    break;
+                }
                 throw new InvalidOperationException($"Unsupported expression type \"{expression.Type}\" => {expression}");
         }
 

@@ -178,5 +178,15 @@ public class SimpleQueryTest : SimpleQueryTestBase
         }
     }
 
+    [TestMethod]
+    public async Task Should_SkipTake_Success()
+    {
+        var dbContext = GetTestEFDbContext();
+        var items = await dbContext.Articles.OrderBy(m => m.Id).Skip(10).Take(10).ToListAsync(TestContext.CancellationToken);
+        Assert.HasCount(10, items);
+        var items2 = await dbContext.Articles.OrderBy(m => m.Id).Skip(0).Take(20).ToListAsync(TestContext.CancellationToken);
+        CollectionAssert.AreEqual(items2.Skip(10).Take(10).ToList(), items);
+    }
+
     #endregion Public 方法
 }
