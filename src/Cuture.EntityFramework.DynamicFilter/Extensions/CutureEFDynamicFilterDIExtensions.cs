@@ -21,17 +21,20 @@ public static class CutureEFDynamicFilterDIExtensions
     /// </summary>
     /// <param name="services"></param>
     /// <param name="setupAction"></param>
+    /// <param name="lifetime">控制部分服务在DI容器中的生命周期</param>
     /// <returns></returns>
-    public static IServiceCollection AddEntityFrameworkDynamicQueryFilter(this IServiceCollection services, Action<EntityFrameworkDynamicFilterOptions> setupAction)
+    public static IServiceCollection AddEntityFrameworkDynamicQueryFilter(this IServiceCollection services,
+                                                                          Action<EntityFrameworkDynamicFilterOptions> setupAction,
+                                                                          ServiceLifetime lifetime = ServiceLifetime.Scoped)
     {
-        services.TryAddScoped<DynamicFilterQueryExpressionInterceptor>();
+        services.TryAdd(ServiceDescriptor.Describe(typeof(DynamicFilterQueryExpressionInterceptor), typeof(DynamicFilterQueryExpressionInterceptor), lifetime));
 
         services.AddOptions<EntityFrameworkDynamicFilterOptions>()
                 .Configure(setupAction);
 
         services.TryAddSingleton<DynamicQueryFilterFactoryContainer>();
 
-        services.TryAddScoped<DynamicQueryFilterFactoryScopeContainer>();
+        services.TryAdd(ServiceDescriptor.Describe(typeof(DynamicQueryFilterFactoryScopeContainer), typeof(DynamicQueryFilterFactoryScopeContainer), lifetime));
 
         return services;
     }
