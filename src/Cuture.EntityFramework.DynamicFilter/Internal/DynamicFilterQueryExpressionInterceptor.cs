@@ -75,9 +75,11 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
         {
             case MethodCallExpression methodCallExpression:
                 {
-                    if (methodCallExpression.Method.IsGenericMethod
-                        && methodCallExpression.Arguments.Count == 2
-                        && methodCallExpression.Method.GetGenericMethodDefinition() is { } targetMethod)   //当前方法可能为支持的查询方法
+                    var genericTargetMethod = methodCallExpression.Method.IsGenericMethod
+                                              ? methodCallExpression.Method.GetGenericMethodDefinition()
+                                              : null;
+                    if (genericTargetMethod is { } targetMethod
+                        && methodCallExpression.Arguments.Count == 2)   //当前方法可能为支持的查询方法
                     {
                         if (SupportMethods.Contains(targetMethod))  //当前方法为支持的查询方法
                         {
@@ -169,7 +171,7 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                             }
                         }
                     }
-                    else if (methodCallExpression.Method.GetGenericMethodDefinition() == CutureEFDynamicFilterQueryableExtensions.IgnoreQueryFilterByTypeMethodInfo)  //当前方法为按类型忽略筛选器
+                    else if (genericTargetMethod == CutureEFDynamicFilterQueryableExtensions.IgnoreQueryFilterByTypeMethodInfo)  //当前方法为按类型忽略筛选器
                     {
                         var genericArguments = methodCallExpression.Method.GetGenericArguments();
                         Debug.Assert(genericArguments.Length == 2);
@@ -178,7 +180,7 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
 
                         return Resolve(methodCallExpression.Arguments[0], ref context);
                     }
-                    else if (methodCallExpression.Method.GetGenericMethodDefinition() == CutureEFDynamicFilterQueryableExtensions.EFIgnoreQueryFiltersMethodInfo)  //当前方法为EF的忽略所有QueryFilter
+                    else if (genericTargetMethod == CutureEFDynamicFilterQueryableExtensions.EFIgnoreQueryFiltersMethodInfo)  //当前方法为EF的忽略所有QueryFilter
                     {
                         context.IgnoreQueryFilters = true;
                     }
