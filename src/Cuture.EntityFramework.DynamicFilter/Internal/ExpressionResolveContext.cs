@@ -24,6 +24,11 @@ internal ref struct ExpressionResolveContext
     #region Public 属性
 
     /// <summary>
+    /// 当前查询过滤器的目标类型
+    /// </summary>
+    public Type? CurrentFilterTargetType { get; set; }
+
+    /// <summary>
     /// 当前表达式处理上下文的第一个表达式
     /// </summary>
     public Expression? FirstExpression { get; set; }

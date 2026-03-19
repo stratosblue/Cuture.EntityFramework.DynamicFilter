@@ -97,23 +97,21 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                             var processedPreExpression = Resolve(preExpression, ref context);
                             var processedQueryExpression = queryExpression;
 
-                            var isQueryNotModified = true;
+                            var isQueryModified = false;
                             if (isCurrentLast && context.TailQueryFilters is not null)
                             {
                                 //尝试解析内部是否有子查询
                                 processedQueryExpression = ResolveNext(processedQueryExpression, ref context);
-                                processedQueryExpression = QueryFilterLambdaExpressionCombiner.AndAlso(processedQueryExpression, context.TailQueryFilters!, ref context);
-                                isQueryNotModified = false;
+                                isQueryModified = QueryFilterLambdaExpressionCombiner.TryAndAlso(ref processedQueryExpression, context.TailQueryFilters!, ref context);
                             }
                             if (ReferenceEquals(context.FirstExpression, methodCallExpression) && context.HeadQueryFilters is not null)
                             {
                                 //尝试解析内部是否有子查询
                                 processedQueryExpression = ResolveNext(processedQueryExpression, ref context);
-                                processedQueryExpression = QueryFilterLambdaExpressionCombiner.AndAlso(processedQueryExpression, context.HeadQueryFilters!, ref context);
-                                isQueryNotModified = false;
+                                isQueryModified = QueryFilterLambdaExpressionCombiner.TryAndAlso(ref processedQueryExpression, context.HeadQueryFilters!, ref context);
                             }
 
-                            if (isQueryNotModified) //查询未修改，尝试解析内部是否有子查询
+                            if (!isQueryModified) //查询未修改，尝试解析内部是否有子查询
                             {
                                 processedQueryExpression = ResolveNext(processedQueryExpression, ref context);
                             }
@@ -257,6 +255,8 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                         context.HeadQueryFilters = queryFilters.Where(m => m.IsEnable && !IsIgnoredFilter(m) && m.Place != DynamicQueryFilterPlace.Tail)
                                                                .OrderByDescending(static m => m.Order)
                                                                .ToList();
+
+                        context.CurrentFilterTargetType = entityQueryRootExpression.ElementType;
 
 #pragma warning restore IDE0305
 
