@@ -4,10 +4,11 @@ using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore.Extensions;
 using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.Extensions.Logging;
 
 namespace Cuture.EntityFramework.DynamicFilter.Internal;
 
-internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilterFactoryScopeContainer queryFilterFactoryScopeContainer)
+internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilterFactoryScopeContainer queryFilterFactoryScopeContainer, ILogger<DynamicFilterQueryExpressionInterceptor> logger)
 {
     #region Public 字段
 
@@ -325,11 +326,13 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
 
             default:
                 //忽略参数表达式
-                if (expression.NodeType == ExpressionType.Parameter)
+                if (expression.NodeType is ExpressionType.Parameter or ExpressionType.MemberAccess or ExpressionType.Constant)
                 {
                     break;
                 }
-                throw new InvalidOperationException($"Unsupported expression type \"{expression.Type}\" => {expression}");
+                //其它表达式类型暂不支持，输出日志
+                logger.LogWarning("Expression \"{Type}\" that do not support resolve => {Expression}", expression.Type, expression);
+                break;
         }
 
         return expression;
