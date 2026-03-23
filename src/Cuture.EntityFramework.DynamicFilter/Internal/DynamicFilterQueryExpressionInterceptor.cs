@@ -19,7 +19,10 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
             nameof(Queryable.First),
             nameof(Queryable.FirstOrDefault),
             nameof(Queryable.Last),
-            nameof(Queryable.LastOrDefault)
+            nameof(Queryable.LastOrDefault),
+            nameof(Queryable.Count),
+            nameof(Queryable.Single),
+            nameof(Queryable.SingleOrDefault),
         ];
 
     public static readonly ImmutableHashSet<MethodInfo> SupportMethods;
