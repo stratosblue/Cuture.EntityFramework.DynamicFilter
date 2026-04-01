@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Extensions;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Logging;
@@ -27,6 +28,8 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
 
     public static readonly ImmutableHashSet<MethodInfo> SupportMethods;
 
+    public static readonly ImmutableHashSet<MethodInfo> UnsupportMethods;
+
     #endregion Public 字段
 
     #region Private 字段
@@ -50,6 +53,18 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
         SupportMethods = [.. SupportMethodNames.Select(name => typeof(Queryable).GetMethod(name, queryMethodParameterTypes)!)];
 
         s_queryableWhereMethod = typeof(Queryable).GetMethod(nameof(Queryable.Where), queryMethodParameterTypes)!;
+
+#if NET8_0
+        UnsupportMethods = [
+            typeof(RelationalQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteDelete") ?? throw new NotSupportedException("Can not find method - \"RelationalQueryableExtensions.ExecuteDelete\""),
+            typeof(RelationalQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteUpdate")?? throw new NotSupportedException("Can not find method - \"RelationalQueryableExtensions.ExecuteUpdate\""),
+        ];
+#elif NET9_0_OR_GREATER
+        UnsupportMethods = [
+            typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteDelete") ?? throw new NotSupportedException("Can not find method - \"EntityFrameworkQueryableExtensions.ExecuteDelete\""),
+            typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteUpdate")?? throw new NotSupportedException("Can not find method - \"EntityFrameworkQueryableExtensions.ExecuteUpdate\""),
+        ];
+#endif
     }
 
     #endregion Public 构造函数
@@ -152,6 +167,10 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                             context.AddIgnoreFilter(filterName);
 
                             return Resolve(methodCallExpression.Arguments[0], ref context);
+                        }
+                        else if (UnsupportMethods.Contains(targetMethod))   //明确不支持的方法，直接返回
+                        {
+                            break; 
                         }
                         else //当前方法为其它方法，尝试解析内部是否有子查询
                         {
