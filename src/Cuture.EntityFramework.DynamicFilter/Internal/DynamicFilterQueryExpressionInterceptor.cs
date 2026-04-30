@@ -59,10 +59,15 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
             typeof(RelationalQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteDelete") ?? throw new NotSupportedException("Can not find method - \"RelationalQueryableExtensions.ExecuteDelete\""),
             typeof(RelationalQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteUpdate")?? throw new NotSupportedException("Can not find method - \"RelationalQueryableExtensions.ExecuteUpdate\""),
         ];
-#elif NET9_0_OR_GREATER
+#elif NET9_0
         UnsupportMethods = [
             typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteDelete") ?? throw new NotSupportedException("Can not find method - \"EntityFrameworkQueryableExtensions.ExecuteDelete\""),
             typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteUpdate")?? throw new NotSupportedException("Can not find method - \"EntityFrameworkQueryableExtensions.ExecuteUpdate\""),
+        ];
+#elif NET10_0_OR_GREATER
+        UnsupportMethods = [
+            typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteDelete") ?? throw new NotSupportedException("Can not find method - \"EntityFrameworkQueryableExtensions.ExecuteDelete\""),
+            typeof(EntityFrameworkQueryableExtensions).GetMethods(BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(m => m.Name == "ExecuteUpdate" && m.GetParameters()[1].ParameterType == typeof(IReadOnlyList<System.Runtime.CompilerServices.ITuple>)) ?? throw new NotSupportedException("Can not find method - \"EntityFrameworkQueryableExtensions.ExecuteUpdate\""),
         ];
 #endif
     }
@@ -170,7 +175,7 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                         }
                         else if (UnsupportMethods.Contains(targetMethod))   //明确不支持的方法，直接返回
                         {
-                            break; 
+                            break;
                         }
                         else //当前方法为其它方法，尝试解析内部是否有子查询
                         {
