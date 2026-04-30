@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.ComponentModel.RuntimeValidation;
 using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -13,8 +14,16 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
 {
     #region Public 字段
 
+    /// <summary>
+    /// 投影方法集合
+    /// </summary>
+    public static readonly ImmutableHashSet<MethodInfo> ProjectionMethods;
+
+    /// <summary>
+    /// 支持的查询方法名称集合
+    /// </summary>
     public static readonly ImmutableHashSet<string> SupportMethodNames =
-        [
+            [
             nameof(Queryable.Where),
             nameof(Queryable.Any),
             nameof(Queryable.First),
@@ -26,8 +35,14 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
             nameof(Queryable.SingleOrDefault),
         ];
 
+    /// <summary>
+    /// 支持的查询方法集合
+    /// </summary>
     public static readonly ImmutableHashSet<MethodInfo> SupportMethods;
 
+    /// <summary>
+    /// 不支持的查询方法集合
+    /// </summary>
     public static readonly ImmutableHashSet<MethodInfo> UnsupportMethods;
 
     #endregion Public 字段
@@ -36,7 +51,7 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
 
     private static readonly MethodInfo s_queryableWhereMethod;
 
-    private readonly DynamicQueryFilterFactoryScopeContainer _queryFilterFactoryScopeContainer = queryFilterFactoryScopeContainer ?? throw new ArgumentNullException(nameof(queryFilterFactoryScopeContainer));
+    private readonly DynamicQueryFilterFactoryScopeContainer _queryFilterFactoryScopeContainer = queryFilterFactoryScopeContainer.Required();
 
     #endregion Private 字段
 
@@ -44,30 +59,44 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
 
     static DynamicFilterQueryExpressionInterceptor()
     {
-        var queryMethodParameterTypes = new Type[]
-        {
+        Type[] queryMethodParameterTypes = [
             typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0)),
-            typeof(Expression<>).MakeGenericType(typeof(Func<,>).MakeGenericType(Type.MakeGenericMethodParameter(0), typeof(bool)))
-        };
+            typeof(Expression<>).MakeGenericType(typeof(Func<,>).MakeGenericType(Type.MakeGenericMethodParameter(0), typeof(bool))),
+        ];
 
-        SupportMethods = [.. SupportMethodNames.Select(name => typeof(Queryable).GetMethod(name, queryMethodParameterTypes)!)];
+        SupportMethods = [.. SupportMethodNames.Select(name => typeof(Queryable).GetMethod(name, queryMethodParameterTypes).Required())];
 
-        s_queryableWhereMethod = typeof(Queryable).GetMethod(nameof(Queryable.Where), queryMethodParameterTypes)!;
+        s_queryableWhereMethod = typeof(Queryable).GetMethod(nameof(Queryable.Where), queryMethodParameterTypes).Required();
+
+        Type[] queryableSelectMethodParameterTypes = [
+            typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0)),
+            typeof(Expression<>).MakeGenericType(typeof(Func<,>).MakeGenericType(Type.MakeGenericMethodParameter(0), Type.MakeGenericMethodParameter(1)))
+        ];
+
+        Type[] queryableSelectManyMethodParameterTypes = [
+            typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0)),
+            typeof(Expression<>).MakeGenericType(typeof(Func<,>).MakeGenericType(Type.MakeGenericMethodParameter(0),typeof(IEnumerable<>).MakeGenericType( Type.MakeGenericMethodParameter(1))))
+        ];
+
+        ProjectionMethods = [
+            typeof(Queryable).GetMethod(nameof(Queryable.Select), queryableSelectMethodParameterTypes).Required(),
+            typeof(Queryable).GetMethod(nameof(Queryable.SelectMany), queryableSelectManyMethodParameterTypes).Required(),
+        ];
 
 #if NET8_0
         UnsupportMethods = [
-            typeof(RelationalQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteDelete") ?? throw new NotSupportedException("Can not find method - \"RelationalQueryableExtensions.ExecuteDelete\""),
-            typeof(RelationalQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteUpdate")?? throw new NotSupportedException("Can not find method - \"RelationalQueryableExtensions.ExecuteUpdate\""),
+            typeof(RelationalQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteDelete").Required(),
+            typeof(RelationalQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteUpdate").Required(),
         ];
 #elif NET9_0
         UnsupportMethods = [
-            typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteDelete") ?? throw new NotSupportedException("Can not find method - \"EntityFrameworkQueryableExtensions.ExecuteDelete\""),
-            typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteUpdate")?? throw new NotSupportedException("Can not find method - \"EntityFrameworkQueryableExtensions.ExecuteUpdate\""),
+            typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteDelete").Required(),
+            typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteUpdate").Required(),
         ];
 #elif NET10_0_OR_GREATER
         UnsupportMethods = [
-            typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteDelete") ?? throw new NotSupportedException("Can not find method - \"EntityFrameworkQueryableExtensions.ExecuteDelete\""),
-            typeof(EntityFrameworkQueryableExtensions).GetMethods(BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(m => m.Name == "ExecuteUpdate" && m.GetParameters()[1].ParameterType == typeof(IReadOnlyList<System.Runtime.CompilerServices.ITuple>)) ?? throw new NotSupportedException("Can not find method - \"EntityFrameworkQueryableExtensions.ExecuteUpdate\""),
+            typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteDelete").Required(),
+            typeof(EntityFrameworkQueryableExtensions).GetMethods(BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(m => m.Name == "ExecuteUpdate" && m.GetParameters()[1].ParameterType == typeof(IReadOnlyList<System.Runtime.CompilerServices.ITuple>)).Required(),
         ];
 #endif
     }
@@ -80,11 +109,13 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
     {
         int parameterCount = 0;
         bool ignoreQueryFilters = false;
+        var projectionState = ProjectionState.Default;
         var context = new ExpressionResolveContext()
         {
             ParameterValues = parameterValues,
             ParameterCount = ref parameterCount,
             IgnoreQueryFilters = ref ignoreQueryFilters,
+            ProjectionState = ref projectionState,
         };
         return Resolve(expression, ref context);
     }
@@ -107,7 +138,9 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                     {
                         if (SupportMethods.Contains(targetMethod))  //当前方法为支持的查询方法
                         {
-                            var isCurrentLast = context.LastExpression is null;
+                            //是否为当前层级的最后一个方法调用，或者是投影前的最后一个方法调用
+                            var isCurrentLast = context.LastExpression is null
+                                                || context.ProjectionState == ProjectionState.BeforeProjection;
                             if (isCurrentLast)
                             {
                                 context.LastExpression = methodCallExpression;
@@ -122,7 +155,9 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                             var processedQueryExpression = queryExpression;
 
                             var isQueryModified = false;
-                            if (isCurrentLast && context.TailQueryFilters is not null)
+                            if (isCurrentLast
+                                && context.TailQueryFilters is not null
+                                && context.ProjectionState != ProjectionState.Projected)    //当前方法为当前层级的最后一个方法，且存在尾部筛选器，且未处于投影状态
                             {
                                 //尝试解析内部是否有子查询
                                 processedQueryExpression = ResolveNext(processedQueryExpression, ref context);
@@ -138,6 +173,12 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                             if (!isQueryModified) //查询未修改，尝试解析内部是否有子查询
                             {
                                 processedQueryExpression = ResolveNext(processedQueryExpression, ref context);
+                            }
+
+                            //设置投影状态
+                            if (context.ProjectionState == ProjectionState.BeforeProjection)
+                            {
+                                context.ProjectionState = ProjectionState.Projected;
                             }
 
                             if (!ReferenceEquals(preExpression, processedPreExpression)
@@ -182,6 +223,12 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                             //第一个为前一个表达式，第二个为查询表达式
                             var preExpression = methodCallExpression.Arguments[0];
                             var queryExpression = methodCallExpression.Arguments[1];
+
+                            //存在投影方法，且当前方法在投影方法之后，则设置为投影前状态，以便在解析子查询时能够正确处理筛选器的添加位置
+                            if (ProjectionMethods.Contains(targetMethod))
+                            {
+                                context.ProjectionState = ProjectionState.BeforeProjection;
+                            }
 
                             var processedPreExpression = Resolve(preExpression, ref context);
 
@@ -289,7 +336,9 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
 #pragma warning restore IDE0305
 
                         //没有表达式，则为裸查询，直接添加筛选
-                        if (context.FirstExpression is null)
+                        //或者者存在表达式，但当前处于投影前，则为裸查询投影，也需要添加筛选
+                        if (context.FirstExpression is null
+                            || context.ProjectionState == ProjectionState.BeforeProjection)
                         {
                             Expression? queryExpression = null;
                             ParameterExpression? parameter = null;
@@ -319,6 +368,12 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                                 return Expression.Call(s_queryableWhereMethod.MakeGenericMethod(entityQueryRootExpression.ElementType),
                                                        entityQueryRootExpression,
                                                        Expression.MakeUnary(ExpressionType.Quote, lambdaExpression, lambdaExpression.GetType()));
+                            }
+
+                            //设置投影状态
+                            if (context.ProjectionState == ProjectionState.BeforeProjection)
+                            {
+                                context.ProjectionState = ProjectionState.Projected;
                             }
                         }
                     }
@@ -367,11 +422,13 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
 
     private Expression ResolveNext(Expression expression, ref ExpressionResolveContext context)
     {
+        var projectionState = ProjectionState.Default;
         var nextContext = new ExpressionResolveContext()
         {
             ParameterValues = context.ParameterValues,
             ParameterCount = ref context.ParameterCount,
             IgnoreQueryFilters = ref context.IgnoreQueryFilters,
+            ProjectionState = ref projectionState,
             IgnoreFilterNames = context.IgnoreFilterNames,
             IgnoreFilterTypes = context.IgnoreFilterTypes,
         };

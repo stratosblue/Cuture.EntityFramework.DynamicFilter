@@ -12,6 +12,7 @@ An extension library for `EntityFrameworkCore` to support dynamic global filters
 ### NOTE!!!
  - 会替换掉 `EntityFrameworkCore` 的 `IQueryCompiler`, 可能与其它通过此逻辑实现功能的库冲突；
  - 与 `EntityFrameworkCore` 的 `QueryFilter` 属于不同的实现，能够共存，内部实现了对 `EntityFrameworkCore` 的 `IgnoreQueryFilters` 的支持，但只针对单个子查询；
+ - 在投影查询中，尾部表达式过滤器仅会追加到投影前的条件末尾，无法附加到`投影后的条件` (`Select`之后的`Where`) 之后；
  
 ## 2. 快速开始
 

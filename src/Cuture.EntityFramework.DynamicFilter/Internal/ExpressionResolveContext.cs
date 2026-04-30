@@ -19,6 +19,11 @@ internal ref struct ExpressionResolveContext
     /// </summary>
     public ref int ParameterCount;
 
+    /// <summary>
+    /// 投影状态
+    /// </summary>
+    public ref ProjectionState ProjectionState;
+
     #endregion Public 字段
 
     #region Public 属性
@@ -73,14 +78,8 @@ internal ref struct ExpressionResolveContext
     /// <param name="filterType"></param>
     public void AddIgnoreFilter(Type filterType)
     {
-        if (IgnoreFilterTypes is null)
-        {
-            IgnoreFilterTypes ??= [filterType];
-        }
-        else
-        {
-            IgnoreFilterTypes.Add(filterType);
-        }
+        IgnoreFilterTypes ??= [];
+        IgnoreFilterTypes.Add(filterType);
     }
 
     /// <summary>
@@ -89,14 +88,8 @@ internal ref struct ExpressionResolveContext
     /// <param name="filterName"></param>
     public void AddIgnoreFilter(string filterName)
     {
-        if (IgnoreFilterNames is null)
-        {
-            IgnoreFilterNames = [filterName];
-        }
-        else
-        {
-            IgnoreFilterNames.Add(filterName);
-        }
+        IgnoreFilterNames ??= [];
+        IgnoreFilterNames.Add(filterName);
     }
 
     #endregion Public 方法

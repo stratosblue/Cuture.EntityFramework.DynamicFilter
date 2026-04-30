@@ -44,6 +44,57 @@ public class SimpleQueryTest : SimpleQueryTestBase
     }
 
     [TestMethod]
+    public async Task Should_Any_Success_Root()
+    {
+        var dbContext = GetTestEFDbContext();
+
+        Assert.IsTrue(await dbContext.Users.AnyAsync(TestContext.CancellationToken));
+        Assert.IsTrue(await dbContext.Articles.AnyAsync(TestContext.CancellationToken));
+    }
+
+    [TestMethod]
+    public async Task Should_Any_With_Selected_Success()
+    {
+        var dbContext = GetTestEFDbContext();
+
+        ChangeTenant(null);
+
+        var value = await dbContext.Users.Where(m => m.Name.Length > 1)
+                                         .Select(m => m.Name)
+                                         .Where(m => !string.IsNullOrWhiteSpace(m))
+                                         .AnyAsync(TestContext.CancellationToken);
+        Assert.IsTrue(value);
+
+        await dbContext.Users.ExecuteUpdateAsync(m => m.SetProperty(n => n.IsDeleted, true), TestContext.CancellationToken);
+
+        value = await dbContext.Users.Where(m => m.Name.Length > 1)
+                                     .Select(m => m.Name)
+                                     .Where(m => !string.IsNullOrWhiteSpace(m))
+                                     .AnyAsync(TestContext.CancellationToken);
+        Assert.IsFalse(value);
+    }
+
+    [TestMethod]
+    public async Task Should_Any_With_Selected_Success_Root()
+    {
+        var dbContext = GetTestEFDbContext();
+
+        ChangeTenant(null);
+
+        var value = await dbContext.Users.Select(m => m.Name)
+                                         .Where(m => !string.IsNullOrWhiteSpace(m))
+                                         .AnyAsync(TestContext.CancellationToken);
+        Assert.IsTrue(value);
+
+        await dbContext.Users.ExecuteUpdateAsync(m => m.SetProperty(n => n.IsDeleted, true), TestContext.CancellationToken);
+
+        value = await dbContext.Users.Select(m => m.Name)
+                                     .Where(m => !string.IsNullOrWhiteSpace(m))
+                                     .AnyAsync(TestContext.CancellationToken);
+        Assert.IsFalse(value);
+    }
+
+    [TestMethod]
     public async Task Should_Count_Success()
     {
         var dbContext = GetTestEFDbContext();
@@ -176,6 +227,70 @@ public class SimpleQueryTest : SimpleQueryTestBase
         {
             Assert.AreEqual(seedArticles[i].Id, articles[i].Id);
         }
+    }
+
+    [TestMethod]
+    public async Task Should_Selected_Success()
+    {
+        var dbContext = GetTestEFDbContext();
+
+        ChangeTenant(null);
+
+        var items = await dbContext.Users.Where(m => m.Name.Length > 1)
+                                         .Select(m => new
+                                         {
+                                             m.Name,
+                                             m.IsDeleted,
+                                         })
+                                         .Where(m => !string.IsNullOrWhiteSpace(m.Name))
+                                         .ToListAsync(TestContext.CancellationToken);
+
+        Assert.IsNotEmpty(items);
+        Assert.IsTrue(items.All(m => m.IsDeleted == false));
+
+        //TODO 支持ExecuteUpdate ExecuteDelete
+        await dbContext.Users.ExecuteUpdateAsync(m => m.SetProperty(n => n.IsDeleted, true), TestContext.CancellationToken);
+
+        items = await dbContext.Users.Where(m => m.Name.Length > 1)
+                                     .Select(m => new
+                                     {
+                                         m.Name,
+                                         m.IsDeleted,
+                                     })
+                                     .Where(m => !string.IsNullOrWhiteSpace(m.Name))
+                                     .ToListAsync(TestContext.CancellationToken);
+        Assert.IsEmpty(items);
+    }
+
+    [TestMethod]
+    public async Task Should_Selected_Success_Root()
+    {
+        var dbContext = GetTestEFDbContext();
+
+        ChangeTenant(null);
+
+        var items = await dbContext.Users.Select(m => new
+        {
+            m.Name,
+            m.IsDeleted,
+        })
+        .Where(m => !string.IsNullOrWhiteSpace(m.Name))
+        .ToListAsync(TestContext.CancellationToken);
+
+        Assert.IsNotEmpty(items);
+        Assert.IsTrue(items.All(m => m.IsDeleted == false));
+
+        //TODO 支持ExecuteUpdate ExecuteDelete
+        await dbContext.Users.ExecuteUpdateAsync(m => m.SetProperty(n => n.IsDeleted, true), TestContext.CancellationToken);
+
+        items = await dbContext.Users.Select(m => new
+        {
+            m.Name,
+            m.IsDeleted,
+        })
+        .Where(m => !string.IsNullOrWhiteSpace(m.Name))
+        .ToListAsync(TestContext.CancellationToken);
+        Assert.IsEmpty(items);
     }
 
     [TestMethod]
