@@ -284,7 +284,6 @@ public class SimpleQueryTest : SimpleQueryTestBase
         Assert.IsNotEmpty(items);
         Assert.IsTrue(items.All(m => m.IsDeleted == false));
 
-        //TODO 支持ExecuteUpdate ExecuteDelete
         await dbContext.Users.ExecuteUpdateAsync(m => m.SetProperty(n => n.IsDeleted, true), TestContext.CancellationToken);
 
         items = await dbContext.Users.Where(m => m.Name.Length > 1)
@@ -316,7 +315,6 @@ public class SimpleQueryTest : SimpleQueryTestBase
         Assert.IsNotEmpty(items);
         Assert.IsTrue(items.All(m => m.IsDeleted == false));
 
-        //TODO 支持ExecuteUpdate ExecuteDelete
         await dbContext.Users.ExecuteUpdateAsync(m => m.SetProperty(n => n.IsDeleted, true), TestContext.CancellationToken);
 
         items = await dbContext.Users.Select(m => new

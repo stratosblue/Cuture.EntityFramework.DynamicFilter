@@ -20,6 +20,11 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
     public static readonly ImmutableHashSet<MethodInfo> ProjectionMethods;
 
     /// <summary>
+    /// 需要跳过的方法集合
+    /// </summary>
+    public static readonly ImmutableHashSet<MethodInfo> SkipMethods;
+
+    /// <summary>
     /// 支持的查询方法名称集合
     /// </summary>
     public static readonly ImmutableHashSet<string> SupportMethodNames =
@@ -39,11 +44,6 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
     /// 支持的查询方法集合
     /// </summary>
     public static readonly ImmutableHashSet<MethodInfo> SupportMethods;
-
-    /// <summary>
-    /// 不支持的查询方法集合
-    /// </summary>
-    public static readonly ImmutableHashSet<MethodInfo> UnsupportMethods;
 
     #endregion Public 字段
 
@@ -84,17 +84,17 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
         ];
 
 #if NET8_0
-        UnsupportMethods = [
+        SkipMethods = [
             typeof(RelationalQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteDelete").Required(),
             typeof(RelationalQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteUpdate").Required(),
         ];
 #elif NET9_0
-        UnsupportMethods = [
+        SkipMethods = [
             typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteDelete").Required(),
             typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteUpdate").Required(),
         ];
 #elif NET10_0_OR_GREATER
-        UnsupportMethods = [
+        SkipMethods = [
             typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteDelete").Required(),
             typeof(EntityFrameworkQueryableExtensions).GetMethods(BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(m => m.Name == "ExecuteUpdate" && m.GetParameters()[1].ParameterType == typeof(IReadOnlyList<System.Runtime.CompilerServices.ITuple>)).Required(),
         ];
@@ -136,6 +136,12 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                     if (genericTargetMethod is { } targetMethod
                         && methodCallExpression.Arguments.Count == 2)   //当前方法可能为支持的查询方法
                     {
+                        //所有的支持方法都是两个参数，第一个为前一个表达式，第二个为查询表达式
+                        //前一个表达式
+                        var preExpression = methodCallExpression.Arguments[0];
+                        //查询表达式
+                        var queryExpression = methodCallExpression.Arguments[1];
+
                         if (SupportMethods.Contains(targetMethod))  //当前方法为支持的查询方法
                         {
                             //记录当前的投影状态
@@ -154,10 +160,6 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                                 context.LastExpression = methodCallExpression;
                             }
                             context.FirstExpression = methodCallExpression;
-
-                            //所有的支持方法都是两个参数，第一个为前一个表达式，第二个为查询表达式
-                            var preExpression = methodCallExpression.Arguments[0];
-                            var queryExpression = methodCallExpression.Arguments[1];
 
                             var processedPreExpression = Resolve(preExpression, ref context);
                             var processedQueryExpression = queryExpression;
@@ -193,14 +195,12 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                         }
                         else if (targetMethod == CutureEFDynamicFilterQueryableExtensions.IgnoreQueryFilterByNameMethodInfo)  //当前方法为按名称忽略筛选器
                         {
-                            Debug.Assert(methodCallExpression.Arguments.Count == 2);
-
                             string? filterName = null;
 #if NET10_0_OR_GREATER
-                            if (methodCallExpression.Arguments[1] is QueryParameterExpression parameterExpression
+                            if (queryExpression is QueryParameterExpression parameterExpression
                                 && context.ParameterValues.TryGetValue(parameterExpression.Name!, out var filterNameObject))
 #else
-                            if (methodCallExpression.Arguments[1] is ParameterExpression parameterExpression
+                            if (queryExpression is ParameterExpression parameterExpression
                                 && context.ParameterValues.ParameterValues.TryGetValue(parameterExpression.Name!, out var filterNameObject))
 #endif
                             {
@@ -216,16 +216,19 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
 
                             return Resolve(methodCallExpression.Arguments[0], ref context);
                         }
-                        else if (UnsupportMethods.Contains(targetMethod))   //明确不支持的方法，直接返回
+                        else if (SkipMethods.Contains(targetMethod))   //需要跳过的方法，不处理当前查询表达式
                         {
-                            break;
+                            var processedPreExpression = Resolve(preExpression, ref context);
+
+                            if (!ReferenceEquals(preExpression, processedPreExpression))
+                            {
+                                return Expression.Call(methodCallExpression.Method,
+                                                       processedPreExpression,
+                                                       queryExpression);
+                            }
                         }
                         else //当前方法为其它方法，尝试解析内部是否有子查询
                         {
-                            //第一个为前一个表达式，第二个为查询表达式
-                            var preExpression = methodCallExpression.Arguments[0];
-                            var queryExpression = methodCallExpression.Arguments[1];
-
                             //存在投影方法，且当前方法在投影方法之后，则设置为投影前状态，以便在解析子查询时能够正确处理筛选器的添加位置
                             if (ProjectionMethods.Contains(targetMethod))
                             {
