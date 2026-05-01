@@ -138,9 +138,17 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                     {
                         if (SupportMethods.Contains(targetMethod))  //当前方法为支持的查询方法
                         {
-                            //是否为当前层级的最后一个方法调用，或者是投影前的最后一个方法调用
-                            var isCurrentLast = context.LastExpression is null
-                                                || context.ProjectionState == ProjectionState.BeforeProjection;
+                            //记录当前的投影状态
+                            var currentProjectionState = context.ProjectionState;
+                            //是否为当前层级的最后一个方法调用
+                            var isCurrentLast = context.LastExpression is null;
+
+                            //调整上下文投影状态
+                            if (currentProjectionState == ProjectionState.BeforeProjection)
+                            {
+                                context.ProjectionState = ProjectionState.Projected;
+                            }
+
                             if (isCurrentLast)
                             {
                                 context.LastExpression = methodCallExpression;
@@ -155,9 +163,9 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                             var processedQueryExpression = queryExpression;
 
                             var isQueryModified = false;
-                            if (isCurrentLast
+                            if ((isCurrentLast || currentProjectionState == ProjectionState.BeforeProjection)
                                 && context.TailQueryFilters is not null
-                                && context.ProjectionState != ProjectionState.Projected)    //当前方法为当前层级的最后一个方法，且存在尾部筛选器，且未处于投影状态
+                                && currentProjectionState != ProjectionState.Projected)    //当前方法为当前层级的最后一个方法，且存在尾部筛选器，且未处于投影状态
                             {
                                 //尝试解析内部是否有子查询
                                 processedQueryExpression = ResolveNext(processedQueryExpression, ref context);
@@ -173,12 +181,6 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                             if (!isQueryModified) //查询未修改，尝试解析内部是否有子查询
                             {
                                 processedQueryExpression = ResolveNext(processedQueryExpression, ref context);
-                            }
-
-                            //设置投影状态
-                            if (context.ProjectionState == ProjectionState.BeforeProjection)
-                            {
-                                context.ProjectionState = ProjectionState.Projected;
                             }
 
                             if (!ReferenceEquals(preExpression, processedPreExpression)

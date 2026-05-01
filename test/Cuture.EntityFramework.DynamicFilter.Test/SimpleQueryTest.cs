@@ -186,6 +186,42 @@ public class SimpleQueryTest : SimpleQueryTestBase
     }
 
     [TestMethod]
+    public async Task Should_Multi_Selected_Success_Root()
+    {
+        var dbContext = GetTestEFDbContext();
+
+        ChangeTenant(null);
+
+        var items = await dbContext.Articles.Select(m => new
+        {
+            m.Title,
+            m.UserId,
+            m.IsDeleted,
+        })
+        .Where(m => !string.IsNullOrWhiteSpace(m.Title))
+        .Select(m => dbContext.Users.Where(n => n.Id == m.UserId).Select(m => new { m.Name, m.IsDeleted, }).FirstOrDefault())
+        .Where(m => m != null && !string.IsNullOrWhiteSpace(m.Name))
+        .ToListAsync(TestContext.CancellationToken);
+
+        Assert.IsNotEmpty(items);
+        Assert.IsTrue(items.All(m => m!.IsDeleted == false));
+
+        await dbContext.Users.ExecuteUpdateAsync(m => m.SetProperty(n => n.IsDeleted, true), TestContext.CancellationToken);
+
+        items = items = await dbContext.Articles.Select(m => new
+        {
+            m.Title,
+            m.UserId,
+            m.IsDeleted,
+        })
+        .Where(m => !string.IsNullOrWhiteSpace(m.Title))
+        .Select(m => dbContext.Users.Where(n => n.Id == m.UserId).Select(m => new { m.Name, m.IsDeleted, }).FirstOrDefault())
+        .Where(m => m != null && !string.IsNullOrWhiteSpace(m.Name))
+        .ToListAsync(TestContext.CancellationToken);
+        Assert.IsEmpty(items);
+    }
+
+    [TestMethod]
     public async Task Should_OrderByDescending_Success()
     {
         var dbContext = GetTestEFDbContext();
