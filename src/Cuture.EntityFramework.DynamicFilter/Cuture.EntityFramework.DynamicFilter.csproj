@@ -13,6 +13,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Cuture.CodeAnalysis.LoggingCodeFixes" Version="1.2.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Cuture.EntityFramework.DynamicFilter.Internal;Cuture.EntityFramework.DynamicFilter.Utils" />
   </ItemGroup>
 

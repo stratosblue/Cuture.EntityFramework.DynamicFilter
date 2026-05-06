@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Cuture.EntityFramework.DynamicFilter.Internal;
 
-internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilterFactoryScopeContainer queryFilterFactoryScopeContainer, ILogger<DynamicFilterQueryExpressionInterceptor> logger)
+internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilterFactoryScopeContainer queryFilterFactoryScopeContainer, ILogger<DynamicFilterQueryExpressionInterceptor> logger)
 {
     #region Public 字段
 
@@ -418,7 +418,7 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
                     break;
                 }
                 //其它表达式类型暂不支持，输出日志
-                logger.LogWarning("Expression \"{Type}\" that do not support resolve => {Expression}", expression.Type, expression);
+                LogUnsupportedExpression(logger, expression.Type, expression);
                 break;
         }
 
@@ -439,6 +439,13 @@ internal sealed class DynamicFilterQueryExpressionInterceptor(DynamicQueryFilter
         };
         return Resolve(expression, ref nextContext);
     }
+
+    #region logging
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Expression \"{Type}\" that do not support resolve => {Expression}")]
+    private static partial void LogUnsupportedExpression(ILogger logger, Type type, Expression expression);
+
+    #endregion logging
 
     #endregion Private 方法
 }
