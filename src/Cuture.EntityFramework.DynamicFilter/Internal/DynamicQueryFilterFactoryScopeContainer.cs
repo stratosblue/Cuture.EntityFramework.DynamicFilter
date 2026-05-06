@@ -16,12 +16,14 @@ internal sealed class DynamicQueryFilterFactoryScopeContainer(DynamicQueryFilter
 
     #region Public 方法
 
-    /// <summary>
-    /// 根据模型类型 <paramref name="type"/> 获取其对应的 <see cref="IDynamicQueryFilter"/>
-    /// </summary>
-    /// <param name="type"></param>
-    /// <returns></returns>
+    /// <inheritdoc cref="DynamicQueryFilterFactoryContainer.GetFilters(Type, IServiceProvider)"/>
     public IDynamicQueryFilter[]? GetFilters(Type type) => _queryFilterFactoryContainer.GetFilters(type, _serviceProvider);
+
+    /// <inheritdoc cref="DynamicQueryFilterFactoryContainer.GetPredicateExpressionType(Type)"/>
+    public Type? GetPredicateExpressionType(Type type) => _queryFilterFactoryContainer.GetPredicateExpressionType(type);
+
+    /// <inheritdoc cref="DynamicQueryFilterFactoryContainer.GetPredicateFuncType(Type)"/>
+    public Type? GetPredicateFuncType(Type type) => _queryFilterFactoryContainer.GetPredicateFuncType(type);
 
     #endregion Public 方法
 }

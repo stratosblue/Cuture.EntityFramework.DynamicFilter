@@ -45,7 +45,7 @@ internal static class QueryFilterLambdaExpressionCombiner
 
         private IEnumerable<IDynamicQueryFilter> _queryFilters = null!;
 
-        private Type _targetType = null!;
+        private Type _targetFuncType = null!;
 
         #endregion Private 字段
 
@@ -56,7 +56,7 @@ internal static class QueryFilterLambdaExpressionCombiner
             _queryFilters = queryFilters;
             _parameterCount = context.ParameterCount;
             _parameterValues = context.ParameterValues;
-            _targetType = context.CurrentFilterTargetType ?? throw new InvalidOperationException("CurrentFilterTargetType must be set in context.");
+            _targetFuncType = context.CurrentPredicateFuncType ?? throw new InvalidOperationException($"{nameof(context.CurrentPredicateFuncType)} must be set in context.");
 
             try
             {
@@ -67,7 +67,7 @@ internal static class QueryFilterLambdaExpressionCombiner
                 _queryFilters = null!;
                 context.ParameterCount = _parameterCount;
                 _parameterValues = null;
-                _targetType = null!;
+                _targetFuncType = null!;
             }
         }
 
@@ -77,13 +77,12 @@ internal static class QueryFilterLambdaExpressionCombiner
 
         protected override Expression VisitLambda<T>(Expression<T> node)
         {
-            var finalParameter = node.Parameters[0];
-
-            if (finalParameter.Type != _targetType)
+            if (node.Type != _targetFuncType)
             {
                 return node;
             }
 
+            var finalParameter = node.Parameters[0];
             var finalExpressionBody = node.Body;
             foreach (var queryFilter in _queryFilters)
             {

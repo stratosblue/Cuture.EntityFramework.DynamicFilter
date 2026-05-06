@@ -10,7 +10,7 @@ internal sealed class DynamicQueryFilterFactoryContainer
 {
     #region Private 属性
 
-    private ImmutableDictionary<Type, Func<IServiceProvider, IDynamicQueryFilter>[]> QueryFilterFactories { get; }
+    private ImmutableDictionary<Type, QueryFilterMetadataCache> QueryFilterMetadataCaches { get; }
 
     #endregion Private 属性
 
@@ -19,9 +19,10 @@ internal sealed class DynamicQueryFilterFactoryContainer
     /// <inheritdoc cref="DynamicQueryFilterFactoryContainer"/>
     public DynamicQueryFilterFactoryContainer(IOptions<EntityFrameworkDynamicFilterOptions> optionsAccessor)
     {
-        var collection = optionsAccessor.Value.QueryFilterMetadataCollection;
+        var options = optionsAccessor.Value;
+        var collection = options.QueryFilterMetadataCollection;
 
-        QueryFilterFactories = collection.ToImmutableDictionary(m => m.Key, m => m.Value.DynamicQueryFilterFactories.ToArray());
+        QueryFilterMetadataCaches = collection.ToImmutableDictionary(m => m.Key.Type, m => new QueryFilterMetadataCache(m.Value.Key.PredicateExpressionType, m.Value.Key.PredicateFuncType, [.. m.Value.DynamicQueryFilterFactories]));
     }
 
     #endregion Public 构造函数
@@ -36,9 +37,10 @@ internal sealed class DynamicQueryFilterFactoryContainer
     /// <returns></returns>
     public IDynamicQueryFilter[]? GetFilters(Type type, IServiceProvider serviceProvider)
     {
-        if (QueryFilterFactories.TryGetValue(type, out var factories)
-            && factories.Length > 0)
+        if (QueryFilterMetadataCaches.TryGetValue(type, out var metadataCache)
+            && metadataCache.HasQueryFilterFactory)
         {
+            var factories = metadataCache.QueryFilterFactories;
             var filters = new IDynamicQueryFilter[factories.Length];
             for (int i = 0; i < factories.Length; i++)
             {
@@ -49,5 +51,40 @@ internal sealed class DynamicQueryFilterFactoryContainer
         return null;
     }
 
+    /// <summary>
+    /// 获取类型<paramref name="type"/>的筛选表达式类型
+    /// </summary>
+    /// <param name="type"></param>
+    /// <returns></returns>
+    public Type? GetPredicateExpressionType(Type type)
+    {
+        if (QueryFilterMetadataCaches.TryGetValue(type, out var metadataCache))
+        {
+            return metadataCache.PredicateExpressionType;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 获取类型<paramref name="type"/>的筛选方法类型
+    /// </summary>
+    /// <param name="type"></param>
+    /// <returns></returns>
+    public Type? GetPredicateFuncType(Type type)
+    {
+        if (QueryFilterMetadataCaches.TryGetValue(type, out var metadataCache))
+        {
+            return metadataCache.PredicateFuncType;
+        }
+
+        return null;
+    }
+
     #endregion Public 方法
+
+    private record struct QueryFilterMetadataCache(Type PredicateExpressionType, Type PredicateFuncType, Func<IServiceProvider, IDynamicQueryFilter>[] QueryFilterFactories)
+    {
+        public bool HasQueryFilterFactory { get; } = QueryFilterFactories.Length > 0;
+    }
 }

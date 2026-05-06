@@ -109,13 +109,13 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
     {
         int parameterCount = 0;
         bool ignoreQueryFilters = false;
-        var projectionState = ProjectionState.Default;
         var context = new ExpressionResolveContext()
         {
             ParameterValues = parameterValues,
             ParameterCount = ref parameterCount,
             IgnoreQueryFilters = ref ignoreQueryFilters,
-            ProjectionState = ref projectionState,
+            ExpressionTypeStack = [],
+            FilterContext = new(),
         };
         return Resolve(expression, ref context);
     }
@@ -144,45 +144,27 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
 
                         if (SupportMethods.Contains(targetMethod))  //当前方法为支持的查询方法
                         {
-                            //记录当前的投影状态
-                            var currentProjectionState = context.ProjectionState;
-                            //是否为当前层级的最后一个方法调用
-                            var isCurrentLast = context.LastExpression is null;
-
-                            //调整上下文投影状态
-                            if (currentProjectionState == ProjectionState.BeforeProjection)
-                            {
-                                context.ProjectionState = ProjectionState.Projected;
-                            }
-
-                            if (isCurrentLast)
-                            {
-                                context.LastExpression = methodCallExpression;
-                            }
-                            context.FirstExpression = methodCallExpression;
+                            var currentQueryStackIndex = context.ExpressionTypeStack.Count;
+                            context.ExpressionTypeStack.Add(queryExpression.Type);
 
                             var processedPreExpression = Resolve(preExpression, ref context);
-                            var processedQueryExpression = queryExpression;
+                            //尝试解析内部是否有子查询
+                            var processedQueryExpression = ResolveNext(queryExpression, ref context);
 
-                            var isQueryModified = false;
-                            if ((isCurrentLast || currentProjectionState == ProjectionState.BeforeProjection)
-                                && context.TailQueryFilters is not null
-                                && currentProjectionState != ProjectionState.Projected)    //当前方法为当前层级的最后一个方法，且存在尾部筛选器，且未处于投影状态
-                            {
-                                //尝试解析内部是否有子查询
-                                processedQueryExpression = ResolveNext(processedQueryExpression, ref context);
-                                isQueryModified = QueryFilterLambdaExpressionCombiner.TryAndAlso(ref processedQueryExpression, context.TailQueryFilters!, ref context);
-                            }
-                            if (ReferenceEquals(context.FirstExpression, methodCallExpression) && context.HeadQueryFilters is not null)
-                            {
-                                //尝试解析内部是否有子查询
-                                processedQueryExpression = ResolveNext(processedQueryExpression, ref context);
-                                isQueryModified = QueryFilterLambdaExpressionCombiner.TryAndAlso(ref processedQueryExpression, context.HeadQueryFilters!, ref context);
-                            }
+                            var filterContext = context.FilterContext;
+                            var queryFilterTargetStackIndex = context.QueryFilterTargetStackIndex;
 
-                            if (!isQueryModified) //查询未修改，尝试解析内部是否有子查询
+                            //当前为目标尾部查询，且存在尾部筛选器
+                            if (currentQueryStackIndex == queryFilterTargetStackIndex.Tail
+                                && filterContext.TailQueryFilters is not null)
                             {
-                                processedQueryExpression = ResolveNext(processedQueryExpression, ref context);
+                                QueryFilterLambdaExpressionCombiner.TryAndAlso(ref processedQueryExpression, filterContext.TailQueryFilters, ref context);
+                            }
+                            //当前为目标头部查询，且存在头部筛选器
+                            if (currentQueryStackIndex == queryFilterTargetStackIndex.Head
+                                && filterContext.HeadQueryFilters is not null)
+                            {
+                                QueryFilterLambdaExpressionCombiner.TryAndAlso(ref processedQueryExpression, filterContext.HeadQueryFilters, ref context);
                             }
 
                             if (!ReferenceEquals(preExpression, processedPreExpression)
@@ -212,7 +194,7 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
                                 throw new InvalidOperationException($"Invalid ignore query filter expression \"{methodCallExpression}\".");
                             }
 
-                            context.AddIgnoreFilter(filterName);
+                            context.FilterContext.AddIgnoreFilter(filterName);
 
                             return Resolve(methodCallExpression.Arguments[0], ref context);
                         }
@@ -229,12 +211,6 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
                         }
                         else //当前方法为其它方法，尝试解析内部是否有子查询
                         {
-                            //存在投影方法，且当前方法在投影方法之后，则设置为投影前状态，以便在解析子查询时能够正确处理筛选器的添加位置
-                            if (ProjectionMethods.Contains(targetMethod))
-                            {
-                                context.ProjectionState = ProjectionState.BeforeProjection;
-                            }
-
                             var processedPreExpression = Resolve(preExpression, ref context);
 
                             //尝试解析内部是否有子查询
@@ -254,7 +230,7 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
                         var genericArguments = methodCallExpression.Method.GetGenericArguments();
                         Debug.Assert(genericArguments.Length == 2);
 
-                        context.AddIgnoreFilter(genericArguments[1]);
+                        context.FilterContext.AddIgnoreFilter(genericArguments[1]);
 
                         return Resolve(methodCallExpression.Arguments[0], ref context);
                     }
@@ -291,16 +267,26 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
 
             case EntityQueryRootExpression entityQueryRootExpression:
                 {
+                    //所有查询都会在根节点收敛
                     if (context.IgnoreQueryFilters)
                     {
                         break;
                     }
+
                     //查询根节点，获取当前查询的相关信息
-                    var queryFilters = _queryFilterFactoryScopeContainer.GetFilters(entityQueryRootExpression.ElementType);
-                    if (queryFilters is not null)
+                    var targetElementType = entityQueryRootExpression.ElementType;
+                    var predicateExpressionType = _queryFilterFactoryScopeContainer.GetPredicateExpressionType(targetElementType);
+                    var predicateFuncType = _queryFilterFactoryScopeContainer.GetPredicateFuncType(targetElementType);
+                    var queryFilters = _queryFilterFactoryScopeContainer.GetFilters(targetElementType);
+
+                    if (queryFilters is not null
+                        && predicateExpressionType is not null
+                        && predicateFuncType is not null)
                     {
-                        List<string>? ignoreFilterNames = context.IgnoreFilterNames;
-                        List<Type>? ignoreFilterTypes = context.IgnoreFilterTypes;
+                        var filterContext = context.FilterContext;
+
+                        List<string>? ignoreFilterNames = filterContext.IgnoreFilterNames;
+                        List<Type>? ignoreFilterTypes = filterContext.IgnoreFilterTypes;
 
                         bool IsIgnoredFilter(IDynamicQueryFilter filter)
                         {
@@ -329,26 +315,33 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
 
 #pragma warning disable IDE0305
 
-                        context.TailQueryFilters = queryFilters.Where(m => m.IsEnable && !IsIgnoredFilter(m) && m.Place == DynamicQueryFilterPlace.Tail)
-                                                               .OrderBy(static m => m.Order)
-                                                               .ToList();
-                        context.HeadQueryFilters = queryFilters.Where(m => m.IsEnable && !IsIgnoredFilter(m) && m.Place != DynamicQueryFilterPlace.Tail)
-                                                               .OrderByDescending(static m => m.Order)
-                                                               .ToList();
+                        filterContext.TailQueryFilters = queryFilters.Where(m => m.IsEnable && !IsIgnoredFilter(m) && m.Place == DynamicQueryFilterPlace.Tail)
+                                                                     .OrderBy(static m => m.Order)
+                                                                     .ToList();
+                        filterContext.HeadQueryFilters = queryFilters.Where(m => m.IsEnable && !IsIgnoredFilter(m) && m.Place != DynamicQueryFilterPlace.Tail)
+                                                                     .OrderByDescending(static m => m.Order)
+                                                                     .ToList();
 
-                        context.CurrentFilterTargetType = entityQueryRootExpression.ElementType;
+                        context.CurrentPredicateFuncType = predicateFuncType;
 
 #pragma warning restore IDE0305
 
-                        //没有表达式，则为裸查询，直接添加筛选
-                        //或者者存在表达式，但当前处于投影前，则为裸查询投影，也需要添加筛选
-                        if (context.FirstExpression is null
-                            || context.ProjectionState == ProjectionState.BeforeProjection)
+                        var headQueryFilterTargetStackIndex = context.ExpressionTypeStack.FindLastIndex(m => m == predicateExpressionType);
+                        var tailQueryFilterTargetStackIndex = context.ExpressionTypeStack.FindIndex(m => m == predicateExpressionType);
+
+                        if (headQueryFilterTargetStackIndex != -1
+                            && tailQueryFilterTargetStackIndex != -1)
+                        {
+                            context.QueryFilterTargetStackIndex = new(headQueryFilterTargetStackIndex, tailQueryFilterTargetStackIndex);
+                        }
+                        else    //没有表达式，则为裸查询，直接添加筛选
                         {
                             Expression? queryExpression = null;
                             ParameterExpression? parameter = null;
 
-                            foreach (var queryFilter in context.HeadQueryFilters.Reverse().Concat(context.TailQueryFilters))
+                            var filters = filterContext.HeadQueryFilters.Reverse().Concat(filterContext.TailQueryFilters);
+
+                            foreach (var queryFilter in filters)
                             {
                                 var underlyingExpression = queryFilter.UnderlyingExpression;
                                 if (queryExpression is null)
@@ -373,12 +366,6 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
                                 return Expression.Call(s_queryableWhereMethod.MakeGenericMethod(entityQueryRootExpression.ElementType),
                                                        entityQueryRootExpression,
                                                        Expression.MakeUnary(ExpressionType.Quote, lambdaExpression, lambdaExpression.GetType()));
-                            }
-
-                            //设置投影状态
-                            if (context.ProjectionState == ProjectionState.BeforeProjection)
-                            {
-                                context.ProjectionState = ProjectionState.Projected;
                             }
                         }
                     }
@@ -427,15 +414,19 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
 
     private Expression ResolveNext(Expression expression, ref ExpressionResolveContext context)
     {
-        var projectionState = ProjectionState.Default;
+        var filterContext = context.FilterContext;
         var nextContext = new ExpressionResolveContext()
         {
             ParameterValues = context.ParameterValues,
             ParameterCount = ref context.ParameterCount,
             IgnoreQueryFilters = ref context.IgnoreQueryFilters,
-            ProjectionState = ref projectionState,
-            IgnoreFilterNames = context.IgnoreFilterNames,
-            IgnoreFilterTypes = context.IgnoreFilterTypes,
+            ExpressionTypeStack = [],
+            FilterContext = new()
+            {
+                //将外部的筛选器传入到内部，保证子查询也能正确应用筛选器
+                HeadQueryFilters = filterContext.HeadQueryFilters,
+                TailQueryFilters = filterContext.TailQueryFilters,
+            },
         };
         return Resolve(expression, ref nextContext);
     }

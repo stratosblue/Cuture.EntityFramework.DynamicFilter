@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Linq.Expressions;
 
 namespace Cuture.EntityFramework.DynamicFilter;
 
@@ -12,7 +13,7 @@ public sealed class EntityFrameworkDynamicFilterOptions
     /// <summary>
     /// 类型对应动态过滤器元数据集合
     /// </summary>
-    public ConcurrentDictionary<Type, EntityDynamicQueryFilterMetadata> QueryFilterMetadataCollection { get; } = new();
+    public ConcurrentDictionary<QueryFilterMetadataKey, EntityDynamicQueryFilterMetadata> QueryFilterMetadataCollection { get; } = new();
 
     #endregion Public 属性
 
@@ -26,7 +27,8 @@ public sealed class EntityFrameworkDynamicFilterOptions
     /// <returns></returns>
     public EntityDynamicFilterBuilder<TEntity> Entity<TEntity>(Action<EntityDynamicFilterBuilder<TEntity>> buildAction)
     {
-        var builder = new EntityDynamicFilterBuilder<TEntity>(QueryFilterMetadataCollection.GetOrAdd(typeof(TEntity), type => new(type)));
+        var key = new QueryFilterMetadataKey(typeof(TEntity), typeof(Expression<Func<TEntity, bool>>), typeof(Func<TEntity, bool>));
+        var builder = new EntityDynamicFilterBuilder<TEntity>(QueryFilterMetadataCollection.GetOrAdd(key, type => new(type)));
         buildAction(builder);
         return builder;
     }

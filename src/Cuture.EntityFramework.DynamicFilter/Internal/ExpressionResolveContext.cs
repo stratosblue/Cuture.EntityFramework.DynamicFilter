@@ -1,6 +1,4 @@
-﻿using System.Linq.Expressions;
-
-namespace Cuture.EntityFramework.DynamicFilter.Internal;
+﻿namespace Cuture.EntityFramework.DynamicFilter.Internal;
 
 /// <summary>
 /// 表达式处理上下文
@@ -20,77 +18,50 @@ internal ref struct ExpressionResolveContext
     public ref int ParameterCount;
 
     /// <summary>
-    /// 投影状态
+    /// 查询过滤器目标栈索引
     /// </summary>
-    public ref ProjectionState ProjectionState;
+    public QueryFilterTargetStackIndex QueryFilterTargetStackIndex;
 
     #endregion Public 字段
 
     #region Public 属性
 
     /// <summary>
-    /// 当前查询过滤器的目标类型
+    /// 当前查询过滤器的目标方法类型
     /// </summary>
-    public Type? CurrentFilterTargetType { get; set; }
+    public Type? CurrentPredicateFuncType { get; set; }
 
     /// <summary>
-    /// 当前表达式处理上下文的第一个表达式
+    /// 表达式类型栈
     /// </summary>
-    public Expression? FirstExpression { get; set; }
+    public required List<Type> ExpressionTypeStack { get; init; }
 
     /// <summary>
-    /// 头部查询过滤器
+    /// 过滤器上下文
     /// </summary>
-    public IList<IDynamicQueryFilter>? HeadQueryFilters { get; set; }
-
-    /// <summary>
-    /// 忽略的过滤器名称列表
-    /// </summary>
-    public List<string>? IgnoreFilterNames { get; set; }
-
-    /// <summary>
-    /// 忽略的过滤器类型列表
-    /// </summary>
-    public List<Type>? IgnoreFilterTypes { get; set; }
-
-    /// <summary>
-    /// 当前表达式处理上下文的最后一个表达式
-    /// </summary>
-    public Expression? LastExpression { get; set; }
+    public required FilterContext FilterContext { get; set; }
 
     /// <summary>
     /// 当前查询的 <see cref="ParameterValues"/>
     /// </summary>
     public required ParameterValues ParameterValues { get; init; }
 
-    /// <summary>
-    /// 尾部查询过滤器
-    /// </summary>
-    public IList<IDynamicQueryFilter>? TailQueryFilters { get; set; }
-
     #endregion Public 属性
 
-    #region Public 方法
+    #region Public 构造函数
 
-    /// <summary>
-    /// 添加对类型为 <paramref name="filterType"/> 的过滤器的忽略
-    /// </summary>
-    /// <param name="filterType"></param>
-    public void AddIgnoreFilter(Type filterType)
+    /// <inheritdoc cref="ExpressionResolveContext"/>
+    public ExpressionResolveContext()
     {
-        IgnoreFilterTypes ??= [];
-        IgnoreFilterTypes.Add(filterType);
+        QueryFilterTargetStackIndex = new(-1, -1);
     }
 
-    /// <summary>
-    /// 添加对名称为 <paramref name="filterName"/> 的过滤器的忽略
-    /// </summary>
-    /// <param name="filterName"></param>
-    public void AddIgnoreFilter(string filterName)
-    {
-        IgnoreFilterNames ??= [];
-        IgnoreFilterNames.Add(filterName);
-    }
-
-    #endregion Public 方法
+    #endregion Public 构造函数
 }
+
+/// <summary>
+/// 查询过滤器目标栈索引
+/// </summary>
+/// <param name="Head">头部筛选器</param>
+/// <param name="Tail">尾部筛选器</param>
+public record struct QueryFilterTargetStackIndex(int Head, int Tail);

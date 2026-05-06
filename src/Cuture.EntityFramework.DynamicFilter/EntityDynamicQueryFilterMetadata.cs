@@ -3,7 +3,8 @@
 /// <summary>
 /// 实体的动态过滤器元数据
 /// </summary>
-public class EntityDynamicQueryFilterMetadata(Type type)
+/// <param name="Key">唯一键</param>
+public record class EntityDynamicQueryFilterMetadata(QueryFilterMetadataKey Key)
 {
     #region Public 属性
 
@@ -12,10 +13,13 @@ public class EntityDynamicQueryFilterMetadata(Type type)
     /// </summary>
     public List<Func<IServiceProvider, IDynamicQueryFilter>> DynamicQueryFilterFactories { get; } = [];
 
-    /// <summary>
-    /// 目标类型
-    /// </summary>
-    public Type Type { get; set; } = type ?? throw new ArgumentNullException(nameof(type));
-
     #endregion Public 属性
 }
+
+/// <summary>
+/// 查询过滤元数据键
+/// </summary>
+/// <param name="Type">目标类型</param>
+/// <param name="PredicateExpressionType">筛选表达式类型</param>
+/// <param name="PredicateFuncType">筛选方法类型</param>
+public record struct QueryFilterMetadataKey(Type Type, Type PredicateExpressionType, Type PredicateFuncType);
