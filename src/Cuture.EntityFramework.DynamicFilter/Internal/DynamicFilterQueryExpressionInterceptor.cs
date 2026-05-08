@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+﻿using System.Buffers;
+using System.Collections.Immutable;
 using System.ComponentModel.RuntimeValidation;
 using System.Diagnostics;
 using System.Linq.Expressions;
@@ -83,22 +84,37 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
             typeof(Queryable).GetMethod(nameof(Queryable.SelectMany), queryableSelectManyMethodParameterTypes).Required(),
         ];
 
-#if NET8_0
         SkipMethods = [
+#if NET8_0
             typeof(RelationalQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteDelete").Required(),
             typeof(RelationalQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteUpdate").Required(),
-        ];
 #elif NET9_0
-        SkipMethods = [
             typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteDelete").Required(),
             typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteUpdate").Required(),
-        ];
 #elif NET10_0_OR_GREATER
-        SkipMethods = [
             typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteDelete").Required(),
             typeof(EntityFrameworkQueryableExtensions).GetMethods(BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(m => m.Name == "ExecuteUpdate" && m.GetParameters()[1].ParameterType == typeof(IReadOnlyList<System.Runtime.CompilerServices.ITuple>)).Required(),
-        ];
 #endif
+            ..GetQueryableExtensionMethods(nameof(Queryable.Order)),
+            ..GetQueryableExtensionMethods(nameof(Queryable.OrderBy)),
+            ..GetQueryableExtensionMethods(nameof(Queryable.OrderDescending)),
+            ..GetQueryableExtensionMethods(nameof(Queryable.OrderByDescending)),
+            ..GetQueryableExtensionMethods(nameof(Queryable.Max)),
+            ..GetQueryableExtensionMethods(nameof(Queryable.MaxBy)),
+            ..GetQueryableExtensionMethods(nameof(Queryable.Min)),
+            ..GetQueryableExtensionMethods(nameof(Queryable.MinBy)),
+            ..GetQueryableExtensionMethods(nameof(Queryable.GroupBy)),
+            ..GetQueryableExtensionMethods(nameof(Queryable.Sum)),
+            ..GetQueryableExtensionMethods(nameof(Queryable.Skip)),
+            ..GetQueryableExtensionMethods(nameof(Queryable.SkipLast)),
+            ..GetQueryableExtensionMethods(nameof(Queryable.SkipWhile)),
+            ..GetQueryableExtensionMethods(nameof(Queryable.Take)),
+            ..GetQueryableExtensionMethods(nameof(Queryable.TakeLast)),
+            ..GetQueryableExtensionMethods(nameof(Queryable.TakeWhile)),
+        ];
+
+        static IEnumerable<MethodInfo> GetQueryableExtensionMethods(string name) => GetPublicStaticMethods(typeof(Queryable), name);
+        static IEnumerable<MethodInfo> GetPublicStaticMethods(Type type, string name) => type.GetMethods(BindingFlags.Static | BindingFlags.Public).Where(m => m.Name == name);
     }
 
     #endregion Public 构造函数
@@ -376,17 +392,59 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
             case UnaryExpression unaryExpression:
                 {
                     //展开处理内部的表达式
-                    if (unaryExpression.Operand is LambdaExpression lambdaExpression
-                        && lambdaExpression.Body is MethodCallExpression methodCallExpression
-                        && Resolve(methodCallExpression, ref context) is { } processedMethodCallExpression
-                        && !ReferenceEquals(methodCallExpression, processedMethodCallExpression))
+                    if (unaryExpression.Operand is LambdaExpression lambdaExpression)
                     {
-                        return Expression.MakeUnary(unaryType: unaryExpression.NodeType,
-                                                    operand: Expression.Lambda(body: processedMethodCallExpression,
-                                                                               name: lambdaExpression.Name,
-                                                                               tailCall: lambdaExpression.TailCall,
-                                                                               parameters: lambdaExpression.Parameters),
-                                                    type: unaryExpression.Type);
+                        var originExpression = lambdaExpression.Body;
+                        var processedExpression = originExpression;
+                        if (originExpression is MethodCallExpression methodCallExpression)
+                        {
+                            processedExpression = Resolve(methodCallExpression, ref context);
+                        }
+                        else if (originExpression is NewExpression newExpression)
+                        {
+                            var argumentsCount = newExpression.Arguments.Count;
+
+                            using var argumentExpressionMemory = MemoryPool<Expression>.Shared.Rent(argumentsCount);
+                            var argumentExpressionBuffer = argumentExpressionMemory.Memory.Span;
+
+                            var index = 0;
+                            var modified = false;
+
+                            foreach (var argumentExpression in newExpression.Arguments)
+                            {
+                                var processedArgumentExpression = argumentExpression;
+
+                                if (argumentExpression.NodeType == ExpressionType.Call)
+                                {
+                                    processedArgumentExpression = ResolveNext(argumentExpression, ref context);
+                                }
+                                if (!ReferenceEquals(argumentExpression, processedArgumentExpression))
+                                {
+                                    modified = true;
+                                }
+
+                                argumentExpressionBuffer[index++] = processedArgumentExpression;
+                            }
+
+                            if (modified)
+                            {
+                                //TODO 优化数组创建
+                                var constructor = newExpression.Constructor.Required();
+                                processedExpression = newExpression.Members is null
+                                                      ? Expression.New(constructor, argumentExpressionBuffer[..index].ToArray())
+                                                      : Expression.New(constructor, argumentExpressionBuffer[..index].ToArray(), newExpression.Members);
+                            }
+                        }
+
+                        if (!ReferenceEquals(originExpression, processedExpression))
+                        {
+                            return Expression.MakeUnary(unaryType: unaryExpression.NodeType,
+                                                        operand: Expression.Lambda(body: processedExpression,
+                                                                                   name: lambdaExpression.Name,
+                                                                                   tailCall: lambdaExpression.TailCall,
+                                                                                   parameters: lambdaExpression.Parameters),
+                                                        type: unaryExpression.Type);
+                        }
                     }
                     break;
                 }

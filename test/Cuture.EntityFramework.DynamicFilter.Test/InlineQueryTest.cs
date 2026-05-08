@@ -68,5 +68,65 @@ public class InlineQueryTest : SimpleQueryTestBase
         }
     }
 
+    [TestMethod]
+    public async Task Should_GroupOrdered_Select_Inline_Sum_Success()
+    {
+        var dbContext = GetTestEFDbContext();
+
+        var notDeletedSum = await dbContext.Articles.IgnoreQueryFilters()
+                                                    .Where(m => !m.IsDeleted && !dbContext.Users.Any(n => n.Id == m.UserId && n.IsDeleted))
+                                                    .SumAsync(m => m.Title.Length, TestContext.CancellationToken);
+        Assert.AreNotEqual(notExpected: notDeletedSum,
+                           actual: await dbContext.Articles.IgnoreQueryFilters().SumAsync(m => m.Title.Length, TestContext.CancellationToken));
+
+        foreach (var userGroup in SeedData.Users.GroupBy(m => m.TenantId))
+        {
+            var tenantId = userGroup.Key;
+
+            ChangeTenant(null);
+
+            Assert.AreEqual(notDeletedSum, await GetTitleLengthSumAsync(dbContext));
+
+            ChangeTenant(tenantId);
+
+            var currentValue = await GetTitleLengthSumAsync(dbContext);
+
+            Assert.AreNotEqual(notDeletedSum, currentValue);
+
+            var currentNotDeletedSum = await dbContext.Articles.IgnoreQueryFilters()
+                                                               .Where(m => m.TenantId == tenantId && !m.IsDeleted && !dbContext.Users.Any(n => n.Id == m.UserId && n.IsDeleted))
+                                                               .SumAsync(m => m.Title.Length, TestContext.CancellationToken);
+
+            Assert.AreEqual(currentNotDeletedSum, currentValue);
+        }
+
+        async Task<int> GetTitleLengthSumAsync(TestEFDbContext dbContext)
+        {
+            var query = dbContext.Users.Where(m => m.Id > -1)
+                                       .GroupBy(m => m.Id)
+                                       .OrderByDescending(g => g.Max(m => m.CreateTime));
+
+            var typeItems = await query.Select(m => new ArticleInfo(m.Key, dbContext.Articles.Where(n => n.UserId == m.Key).Sum(n => n.Title.Length)))
+                                       .ToListAsync(TestContext.CancellationToken);
+
+            var anonymousItems = await query.Select(m => new
+            {
+                m.Key,
+                Count = dbContext.Articles.Where(n => n.UserId == m.Key).Sum(n => n.Title.Length)
+            })
+            .ToListAsync(TestContext.CancellationToken);
+
+            var typeSum = typeItems.Sum(n => n.TitleLength);
+            var anonymousSum = anonymousItems.Sum(n => n.Count);
+
+            Assert.AreEqual(typeSum, anonymousSum);
+            Assert.AreNotEqual(0, typeSum);
+
+            return typeSum;
+        }
+    }
+
+    private record ArticleInfo(int UserId, int TitleLength);
+
     #endregion Public 方法
 }

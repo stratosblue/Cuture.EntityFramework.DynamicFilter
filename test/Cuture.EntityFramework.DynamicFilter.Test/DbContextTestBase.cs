@@ -113,13 +113,31 @@ public abstract class DbContextTestBase
             {
                 for (int addUserIndex = 0; addUserIndex < 10; addUserIndex++)
                 {
-                    var user = new User() { Id = ++userId, Name = $"User-{userId}", IsDeleted = addUserIndex > 8, OrganizationId = organizationId, TenantId = tenantId };
+                    var user = new User()
+                    {
+                        Id = ++userId,
+                        Name = $"User-{userId}",
+                        IsDeleted = addUserIndex > 8,
+                        OrganizationId = organizationId,
+                        TenantId = tenantId,
+                        CreateTime = DateTime.UtcNow
+                    };
                     users.Add(user);
                     dbContext.Users.Add(user);
 
                     for (int addArticleIndex = 0; addArticleIndex < 5; addArticleIndex++)
                     {
-                        var article = new Article() { Id = ++articleId, Title = $"Article-{articleId}", Content = $"Article-{articleId}-Content", UserId = userId, IsDeleted = addArticleIndex > 3, OrganizationId = organizationId, TenantId = tenantId };
+                        var article = new Article()
+                        {
+                            Id = ++articleId,
+                            Title = $"Article-{articleId}",
+                            Content = $"Article-{articleId}-Content",
+                            UserId = userId,
+                            IsDeleted = addArticleIndex > 3,
+                            OrganizationId = organizationId,
+                            TenantId = tenantId,
+                            CreateTime = DateTime.UtcNow
+                        };
                         articles.Add(article);
                         dbContext.Articles.Add(article);
                     }

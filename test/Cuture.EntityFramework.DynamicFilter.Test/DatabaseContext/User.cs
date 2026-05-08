@@ -14,6 +14,8 @@ public class User : ITenantId, IOrganizationId, ISoftDeletion
 
     public ulong TenantId { get; set; }
 
+    public required DateTime CreateTime { get; set; }
+
     public override string ToString()
     {
         return $"{Id}【{Name}】TenantId: {TenantId} , OrganizationId: {OrganizationId} , IsDeleted: {IsDeleted}";
