@@ -73,11 +73,12 @@ public class InlineQueryTest : SimpleQueryTestBase
     {
         var dbContext = GetTestEFDbContext();
 
+        var allSum = await dbContext.Articles.IgnoreQueryFilters().SumAsync(m => m.Title.Length, TestContext.CancellationToken);
         var notDeletedSum = await dbContext.Articles.IgnoreQueryFilters()
                                                     .Where(m => !m.IsDeleted && !dbContext.Users.Any(n => n.Id == m.UserId && n.IsDeleted))
                                                     .SumAsync(m => m.Title.Length, TestContext.CancellationToken);
         Assert.AreNotEqual(notExpected: notDeletedSum,
-                           actual: await dbContext.Articles.IgnoreQueryFilters().SumAsync(m => m.Title.Length, TestContext.CancellationToken));
+                           actual: allSum);
 
         foreach (var userGroup in SeedData.Users.GroupBy(m => m.TenantId))
         {
@@ -89,7 +90,7 @@ public class InlineQueryTest : SimpleQueryTestBase
 
             ChangeTenant(tenantId);
 
-            var currentValue = await GetTitleLengthSumAsync(dbContext);
+            var currentValue = await GetTitleLengthSumAsync(dbContext, tenantId);
 
             Assert.AreNotEqual(notDeletedSum, currentValue);
 
@@ -100,24 +101,49 @@ public class InlineQueryTest : SimpleQueryTestBase
             Assert.AreEqual(currentNotDeletedSum, currentValue);
         }
 
-        async Task<int> GetTitleLengthSumAsync(TestEFDbContext dbContext)
+        async Task<int> GetTitleLengthSumAsync(TestEFDbContext dbContext, ulong? tenantId = null)
         {
             var query = dbContext.Users.Where(m => m.Id > -1)
-                                       .GroupBy(m => m.Id)
+                                       .GroupBy(m => m.TenantId)
                                        .OrderByDescending(g => g.Max(m => m.CreateTime));
 
-            var typeItems = await query.Select(m => new ArticleInfo(m.Key, dbContext.Articles.Where(n => n.UserId == m.Key).Sum(n => n.Title.Length)))
+            var typeItems = await query.Select(m => new ArticleInfo(UserId: m.Key,
+                                                                    MaxId: m.OrderBy(n => n.TenantId).Max(n => n.Id),
+                                                                    MinId: m.OrderBy(n => n.TenantId).Min(n => n.Id),
+                                                                    TitleLength: dbContext.Articles.Where(n => n.TenantId == m.Key && !dbContext.Users.IgnoreQueryFilters().Any(u => u.Id == n.UserId && u.IsDeleted)).Sum(n => n.Title.Length)))
                                        .ToListAsync(TestContext.CancellationToken);
 
             var anonymousItems = await query.Select(m => new
             {
                 m.Key,
-                Count = dbContext.Articles.Where(n => n.UserId == m.Key).Sum(n => n.Title.Length)
+                MaxId = m.OrderBy(n => n.TenantId).Max(n => n.Id),
+                MinId = m.OrderBy(n => n.TenantId).Min(n => n.Id),
+                Count = dbContext.Articles.Where(n => n.TenantId == m.Key && !dbContext.Users.IgnoreQueryFilters().Any(u => u.Id == n.UserId && u.IsDeleted)).Sum(n => n.Title.Length)
             })
             .ToListAsync(TestContext.CancellationToken);
 
             var typeSum = typeItems.Sum(n => n.TitleLength);
             var anonymousSum = anonymousItems.Sum(n => n.Count);
+
+            Assert.IsTrue(typeItems.Zip(anonymousItems).All((a) => a.First.MinId == a.Second.MinId && a.First.MaxId == a.Second.MaxId));
+
+            var noFilterAnonymousItems = await query.IgnoreQueryFilters()
+                                                    .Select(m => new
+                                                    {
+                                                        m.Key,
+                                                        MaxId = m.OrderBy(n => n.TenantId).Max(n => n.Id),
+                                                        MinId = m.OrderBy(n => n.TenantId).Min(n => n.Id),
+                                                        Count = dbContext.Articles.Where(n => n.TenantId == m.Key && !dbContext.Users.IgnoreQueryFilters().Any(u => u.Id == n.UserId && u.IsDeleted)).Sum(n => n.Title.Length)
+                                                    })
+                                                    .ToListAsync(TestContext.CancellationToken); ;
+
+            if (tenantId.HasValue)
+            {
+                noFilterAnonymousItems = noFilterAnonymousItems.Where(m => m.Key == tenantId.Value).ToList();
+            }
+
+            //此处依赖种子数据的生成结果
+            Assert.IsTrue(typeItems.Zip(noFilterAnonymousItems).All((a) => a.First.MinId == a.Second.MinId && a.First.MaxId != a.Second.MaxId));
 
             Assert.AreEqual(typeSum, anonymousSum);
             Assert.AreNotEqual(0, typeSum);
@@ -126,7 +152,7 @@ public class InlineQueryTest : SimpleQueryTestBase
         }
     }
 
-    private record ArticleInfo(int UserId, int TitleLength);
+    private record ArticleInfo(ulong UserId, int MaxId, int MinId, int TitleLength);
 
     #endregion Public 方法
 }

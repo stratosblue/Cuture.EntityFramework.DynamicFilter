@@ -15,6 +15,19 @@ public class SimpleNakeQueryTest : SimpleQueryTestBase
     #region Public 方法
 
     [TestMethod]
+    public async Task Should_All_Success()
+    {
+        var dbContext = GetTestEFDbContext();
+
+        Assert.IsFalse(await dbContext.Users.IgnoreQueryFilters().AllAsync(m => m.IsDeleted, TestContext.CancellationToken));
+        Assert.IsFalse(await dbContext.Articles.IgnoreQueryFilters().AllAsync(m => m.IsDeleted, TestContext.CancellationToken));
+
+        //TODO 这里会因为表达式优化而导致结果不正确，需要使用表达式单元测试来验证表达式是否正确生成
+        Assert.IsFalse(await dbContext.Users.AllAsync(m => m.IsDeleted, TestContext.CancellationToken));
+        Assert.IsFalse(await dbContext.Articles.AllAsync(m => m.IsDeleted, TestContext.CancellationToken));
+    }
+
+    [TestMethod]
     public async Task Should_Any_Success()
     {
         var dbContext = GetTestEFDbContext();

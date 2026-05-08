@@ -2,6 +2,7 @@
 using System.Collections.Immutable;
 using System.ComponentModel.RuntimeValidation;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +32,7 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
     public static readonly ImmutableHashSet<string> SupportMethodNames =
             [
             nameof(Queryable.Where),
+            nameof(Queryable.All),
             nameof(Queryable.Any),
             nameof(Queryable.First),
             nameof(Queryable.FirstOrDefault),
@@ -50,6 +52,8 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
 
     #region Private 字段
 
+    private static readonly MethodInfo s_enumerableWhereMethod;
+
     private static readonly MethodInfo s_queryableWhereMethod;
 
     private readonly DynamicQueryFilterFactoryScopeContainer _queryFilterFactoryScopeContainer = queryFilterFactoryScopeContainer.Required();
@@ -65,9 +69,18 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
             typeof(Expression<>).MakeGenericType(typeof(Func<,>).MakeGenericType(Type.MakeGenericMethodParameter(0), typeof(bool))),
         ];
 
-        SupportMethods = [.. SupportMethodNames.Select(name => typeof(Queryable).GetMethod(name, queryMethodParameterTypes).Required())];
+        Type[] enumerableQueryMethodParameterTypes = [
+            typeof(IEnumerable<>).MakeGenericType(Type.MakeGenericMethodParameter(0)),
+            typeof(Func<,>).MakeGenericType(Type.MakeGenericMethodParameter(0), typeof(bool)),
+        ];
+
+        SupportMethods = [
+            .. SupportMethodNames.Select(name => typeof(Queryable).GetMethod(name, queryMethodParameterTypes).Required()),
+            .. SupportMethodNames.Select(name => typeof(Enumerable).GetMethod(name, enumerableQueryMethodParameterTypes).Required()),
+        ];
 
         s_queryableWhereMethod = typeof(Queryable).GetMethod(nameof(Queryable.Where), queryMethodParameterTypes).Required();
+        s_enumerableWhereMethod = typeof(Enumerable).GetMethod(nameof(Enumerable.Where), enumerableQueryMethodParameterTypes).Required();
 
         Type[] queryableSelectMethodParameterTypes = [
             typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0)),
@@ -95,6 +108,7 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
             typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetDeclaredMethod("ExecuteDelete").Required(),
             typeof(EntityFrameworkQueryableExtensions).GetMethods(BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(m => m.Name == "ExecuteUpdate" && m.GetParameters()[1].ParameterType == typeof(IReadOnlyList<System.Runtime.CompilerServices.ITuple>)).Required(),
 #endif
+            //Queryable
             ..GetQueryableExtensionMethods(nameof(Queryable.Order)),
             ..GetQueryableExtensionMethods(nameof(Queryable.OrderBy)),
             ..GetQueryableExtensionMethods(nameof(Queryable.OrderDescending)),
@@ -111,8 +125,27 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
             ..GetQueryableExtensionMethods(nameof(Queryable.Take)),
             ..GetQueryableExtensionMethods(nameof(Queryable.TakeLast)),
             ..GetQueryableExtensionMethods(nameof(Queryable.TakeWhile)),
+
+            //Enumerable
+            ..GetEnumerableExtensionMethods(nameof(Enumerable.Order)),
+            ..GetEnumerableExtensionMethods(nameof(Enumerable.OrderBy)),
+            ..GetEnumerableExtensionMethods(nameof(Enumerable.OrderDescending)),
+            ..GetEnumerableExtensionMethods(nameof(Enumerable.OrderByDescending)),
+            ..GetEnumerableExtensionMethods(nameof(Enumerable.Max)),
+            ..GetEnumerableExtensionMethods(nameof(Enumerable.MaxBy)),
+            ..GetEnumerableExtensionMethods(nameof(Enumerable.Min)),
+            ..GetEnumerableExtensionMethods(nameof(Enumerable.MinBy)),
+            ..GetEnumerableExtensionMethods(nameof(Enumerable.GroupBy)),
+            ..GetEnumerableExtensionMethods(nameof(Enumerable.Sum)),
+            ..GetEnumerableExtensionMethods(nameof(Enumerable.Skip)),
+            ..GetEnumerableExtensionMethods(nameof(Enumerable.SkipLast)),
+            ..GetEnumerableExtensionMethods(nameof(Enumerable.SkipWhile)),
+            ..GetEnumerableExtensionMethods(nameof(Enumerable.Take)),
+            ..GetEnumerableExtensionMethods(nameof(Enumerable.TakeLast)),
+            ..GetEnumerableExtensionMethods(nameof(Enumerable.TakeWhile)),
         ];
 
+        static IEnumerable<MethodInfo> GetEnumerableExtensionMethods(string name) => GetPublicStaticMethods(typeof(Enumerable), name);
         static IEnumerable<MethodInfo> GetQueryableExtensionMethods(string name) => GetPublicStaticMethods(typeof(Queryable), name);
         static IEnumerable<MethodInfo> GetPublicStaticMethods(Type type, string name) => type.GetMethods(BindingFlags.Static | BindingFlags.Public).Where(m => m.Name == name);
     }
@@ -283,109 +316,14 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
 
             case EntityQueryRootExpression entityQueryRootExpression:
                 {
-                    //所有查询都会在根节点收敛
-                    if (context.IgnoreQueryFilters)
+                    if (TryProcessExpressionRoot(targetElementType: entityQueryRootExpression.ElementType,
+                                                 targetElementGroupingType: null,
+                                                 expression: entityQueryRootExpression,
+                                                 context: ref context,
+                                                 processedExpression: out var processedExpression))
                     {
-                        break;
+                        return processedExpression;
                     }
-
-                    //查询根节点，获取当前查询的相关信息
-                    var targetElementType = entityQueryRootExpression.ElementType;
-                    var predicateExpressionType = _queryFilterFactoryScopeContainer.GetPredicateExpressionType(targetElementType);
-                    var predicateFuncType = _queryFilterFactoryScopeContainer.GetPredicateFuncType(targetElementType);
-                    var queryFilters = _queryFilterFactoryScopeContainer.GetFilters(targetElementType);
-
-                    if (queryFilters is not null
-                        && predicateExpressionType is not null
-                        && predicateFuncType is not null)
-                    {
-                        var filterContext = context.FilterContext;
-
-                        List<string>? ignoreFilterNames = filterContext.IgnoreFilterNames;
-                        List<Type>? ignoreFilterTypes = filterContext.IgnoreFilterTypes;
-
-                        bool IsIgnoredFilter(IDynamicQueryFilter filter)
-                        {
-                            if (ignoreFilterNames is not null)
-                            {
-                                for (int i = ignoreFilterNames.Count - 1; i >= 0; i--)
-                                {
-                                    if (string.Compare(ignoreFilterNames[i], filter.Name) == 0)
-                                    {
-                                        return true;
-                                    }
-                                }
-                            }
-                            if (ignoreFilterTypes is not null)
-                            {
-                                for (int i = ignoreFilterTypes.Count - 1; i >= 0; i--)
-                                {
-                                    if (ignoreFilterTypes[i] == filter.GetType())
-                                    {
-                                        return true;
-                                    }
-                                }
-                            }
-                            return false;
-                        }
-
-#pragma warning disable IDE0305
-
-                        filterContext.TailQueryFilters = queryFilters.Where(m => m.IsEnable && !IsIgnoredFilter(m) && m.Place == DynamicQueryFilterPlace.Tail)
-                                                                     .OrderBy(static m => m.Order)
-                                                                     .ToList();
-                        filterContext.HeadQueryFilters = queryFilters.Where(m => m.IsEnable && !IsIgnoredFilter(m) && m.Place != DynamicQueryFilterPlace.Tail)
-                                                                     .OrderByDescending(static m => m.Order)
-                                                                     .ToList();
-
-                        context.CurrentPredicateFuncType = predicateFuncType;
-
-#pragma warning restore IDE0305
-
-                        var headQueryFilterTargetStackIndex = context.ExpressionTypeStack.FindLastIndex(m => m == predicateExpressionType);
-                        var tailQueryFilterTargetStackIndex = context.ExpressionTypeStack.FindIndex(m => m == predicateExpressionType);
-
-                        if (headQueryFilterTargetStackIndex != -1
-                            && tailQueryFilterTargetStackIndex != -1)
-                        {
-                            context.QueryFilterTargetStackIndex = new(headQueryFilterTargetStackIndex, tailQueryFilterTargetStackIndex);
-                        }
-                        else    //没有表达式，则为裸查询，直接添加筛选
-                        {
-                            Expression? queryExpression = null;
-                            ParameterExpression? parameter = null;
-
-                            var filters = filterContext.HeadQueryFilters.Reverse().Concat(filterContext.TailQueryFilters);
-
-                            foreach (var queryFilter in filters)
-                            {
-                                var underlyingExpression = queryFilter.UnderlyingExpression;
-                                if (queryExpression is null)
-                                {
-                                    parameter = underlyingExpression.Parameters[0];
-
-                                    var parameterizeBody = QueryExpressionParameterExtractor.Extracting(underlyingExpression.Body, ref context);
-                                    queryExpression = ExpressionParameterReplacer.Replace(parameterizeBody, underlyingExpression.Parameters[0], parameter!);
-                                }
-                                else
-                                {
-                                    var parameterizeBody = QueryExpressionParameterExtractor.Extracting(underlyingExpression.Body, ref context);
-                                    var parameterReplacedExpression = ExpressionParameterReplacer.Replace(parameterizeBody, underlyingExpression.Parameters[0], parameter!);
-
-                                    queryExpression = Expression.AndAlso(queryExpression, parameterReplacedExpression);
-                                }
-                            }
-
-                            if (queryExpression is not null)
-                            {
-                                var lambdaExpression = Expression.Lambda(queryExpression, parameter!);
-                                return Expression.Call(s_queryableWhereMethod.MakeGenericMethod(entityQueryRootExpression.ElementType),
-                                                       entityQueryRootExpression,
-                                                       Expression.MakeUnary(ExpressionType.Quote, lambdaExpression, lambdaExpression.GetType()));
-                            }
-                        }
-                    }
-
                     break;
                 }
 
@@ -435,6 +373,10 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
                                                       : Expression.New(constructor, argumentExpressionBuffer[..index].ToArray(), newExpression.Members);
                             }
                         }
+                        else if (originExpression is BinaryExpression)
+                        {
+                            processedExpression = Resolve(originExpression, ref context);
+                        }
 
                         if (!ReferenceEquals(originExpression, processedExpression))
                         {
@@ -446,15 +388,66 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
                                                         type: unaryExpression.Type);
                         }
                     }
+                    else if (unaryExpression.Operand is MethodCallExpression methodCallExpression)
+                    {
+                        var originExpression = methodCallExpression;
+                        var processedExpression = Resolve(originExpression, ref context);
+
+                        if (!ReferenceEquals(originExpression, processedExpression))
+                        {
+                            return Expression.MakeUnary(unaryType: unaryExpression.NodeType,
+                                                        operand: processedExpression,
+                                                        type: unaryExpression.Type);
+                        }
+                    }
+                    break;
+                }
+
+            case BinaryExpression binaryExpression:
+                {
+                    var processedLeft = Resolve(binaryExpression.Left, ref context);
+                    var processedRight = Resolve(binaryExpression.Right, ref context);
+                    if (!ReferenceEquals(binaryExpression.Left, processedLeft)
+                        || !ReferenceEquals(binaryExpression.Right, processedRight))
+                    {
+                        return Expression.MakeBinary(binaryType: binaryExpression.NodeType,
+                                                     left: processedLeft,
+                                                     right: processedRight,
+                                                     liftToNull: binaryExpression.IsLiftedToNull,
+                                                     method: binaryExpression.Method,
+                                                     conversion: binaryExpression.Conversion);
+                    }
                     break;
                 }
 
 #if NET10_0_OR_GREATER
 
-            case QueryParameterExpression or ParameterExpression:
+            case QueryParameterExpression queryParameterExpression:
                 //忽略参数表达式
                 break;
+
 #endif
+
+            case ParameterExpression parameterExpression:
+                {
+                    var parameterType = parameterExpression.Type;
+                    //特化支持对 IGrouping 的处理
+                    if (parameterType.IsGenericType
+                        && parameterType.GetGenericTypeDefinition() == typeof(IGrouping<,>))
+                    {
+                        var targetElementType = parameterType.GenericTypeArguments[1];
+                        if (TryProcessExpressionRoot(targetElementType: targetElementType,
+                                                     targetElementGroupingType: parameterType,
+                                                     expression: parameterExpression,
+                                                     context: ref context,
+                                                     processedExpression: out var processedExpression))
+                        {
+                            return processedExpression;
+                        }
+                    }
+                    //忽略参数表达式
+                    break;
+                }
 
             default:
                 //忽略参数表达式
@@ -473,11 +466,12 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
     private Expression ResolveNext(Expression expression, ref ExpressionResolveContext context)
     {
         var filterContext = context.FilterContext;
+        var ignoreQueryFilters = context.IgnoreQueryFilters;
         var nextContext = new ExpressionResolveContext()
         {
             ParameterValues = context.ParameterValues,
             ParameterCount = ref context.ParameterCount,
-            IgnoreQueryFilters = ref context.IgnoreQueryFilters,
+            IgnoreQueryFilters = ref ignoreQueryFilters,
             ExpressionTypeStack = [],
             FilterContext = new()
             {
@@ -487,6 +481,144 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
             },
         };
         return Resolve(expression, ref nextContext);
+    }
+
+    /// <summary>
+    /// 尝试处理表达式根
+    /// </summary>
+    /// <param name="targetElementType">目标元素类型</param>
+    /// <param name="targetElementGroupingType">目标元素分组类型 (仅在分组时传递)</param>
+    /// <param name="expression">原表达式</param>
+    /// <param name="context">解析上下文</param>
+    /// <param name="processedExpression">处理后的表达式</param>
+    /// <returns></returns>
+    private bool TryProcessExpressionRoot(Type targetElementType,
+                                          Type? targetElementGroupingType,
+                                          Expression expression,
+                                          ref ExpressionResolveContext context,
+                                          [NotNullWhen(true)] out Expression? processedExpression)
+    {
+        processedExpression = null;
+
+        //所有查询都会在根节点收敛
+        if (context.IgnoreQueryFilters)
+        {
+            return false;
+        }
+
+        //查询根节点，获取当前查询的相关信息
+        var predicateExpressionType = _queryFilterFactoryScopeContainer.GetPredicateExpressionType(targetElementType);
+        var predicateFuncType = _queryFilterFactoryScopeContainer.GetPredicateFuncType(targetElementType);
+        var queryFilters = _queryFilterFactoryScopeContainer.GetFilters(targetElementType);
+
+        if (queryFilters is not null
+            && predicateExpressionType is not null
+            && predicateFuncType is not null)
+        {
+            var filterContext = context.FilterContext;
+
+            List<string>? ignoreFilterNames = filterContext.IgnoreFilterNames;
+            List<Type>? ignoreFilterTypes = filterContext.IgnoreFilterTypes;
+
+            bool IsIgnoredFilter(IDynamicQueryFilter filter)
+            {
+                if (ignoreFilterNames is not null)
+                {
+                    for (int i = ignoreFilterNames.Count - 1; i >= 0; i--)
+                    {
+                        if (string.Compare(ignoreFilterNames[i], filter.Name) == 0)
+                        {
+                            return true;
+                        }
+                    }
+                }
+                if (ignoreFilterTypes is not null)
+                {
+                    for (int i = ignoreFilterTypes.Count - 1; i >= 0; i--)
+                    {
+                        if (ignoreFilterTypes[i] == filter.GetType())
+                        {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+#pragma warning disable IDE0305
+
+            filterContext.TailQueryFilters = queryFilters.Where(m => m.IsEnable && !IsIgnoredFilter(m) && m.Place == DynamicQueryFilterPlace.Tail)
+                                                         .OrderBy(static m => m.Order)
+                                                         .ToList();
+            filterContext.HeadQueryFilters = queryFilters.Where(m => m.IsEnable && !IsIgnoredFilter(m) && m.Place != DynamicQueryFilterPlace.Tail)
+                                                         .OrderByDescending(static m => m.Order)
+                                                         .ToList();
+
+            context.CurrentPredicateFuncType = predicateFuncType;
+
+#pragma warning restore IDE0305
+
+            var headQueryFilterTargetStackIndex = context.ExpressionTypeStack.FindLastIndex(m => m == predicateExpressionType);
+            var tailQueryFilterTargetStackIndex = context.ExpressionTypeStack.FindIndex(m => m == predicateExpressionType);
+
+            if (headQueryFilterTargetStackIndex != -1
+                && tailQueryFilterTargetStackIndex != -1)
+            {
+                context.QueryFilterTargetStackIndex = new(headQueryFilterTargetStackIndex, tailQueryFilterTargetStackIndex);
+            }
+            else    //没有表达式，则为裸查询，直接添加筛选
+            {
+                Expression? queryExpression = null;
+                ParameterExpression? parameter = null;
+
+                var filters = filterContext.HeadQueryFilters.Reverse().Concat(filterContext.TailQueryFilters);
+
+                foreach (var queryFilter in filters)
+                {
+                    var underlyingExpression = queryFilter.UnderlyingExpression;
+                    if (queryExpression is null)
+                    {
+                        parameter = underlyingExpression.Parameters[0];
+
+                        var parameterizeBody = QueryExpressionParameterExtractor.Extracting(underlyingExpression.Body, ref context);
+                        queryExpression = ExpressionParameterReplacer.Replace(parameterizeBody, underlyingExpression.Parameters[0], parameter!);
+                    }
+                    else
+                    {
+                        var parameterizeBody = QueryExpressionParameterExtractor.Extracting(underlyingExpression.Body, ref context);
+                        var parameterReplacedExpression = ExpressionParameterReplacer.Replace(parameterizeBody, underlyingExpression.Parameters[0], parameter!);
+
+                        queryExpression = Expression.AndAlso(queryExpression, parameterReplacedExpression);
+                    }
+                }
+
+                if (queryExpression is not null)
+                {
+                    var lambdaExpression = Expression.Lambda(queryExpression, parameter!);
+
+                    MethodInfo method;
+                    Expression predicateExpression;
+
+                    if (targetElementGroupingType is null)
+                    {
+                        method = s_queryableWhereMethod.MakeGenericMethod(targetElementType);
+                        predicateExpression = Expression.MakeUnary(ExpressionType.Quote, lambdaExpression, lambdaExpression.GetType());
+                    }
+                    else
+                    {
+                        method = s_enumerableWhereMethod.MakeGenericMethod(targetElementType);
+                        predicateExpression = lambdaExpression;
+                    }
+
+                    processedExpression = Expression.Call(method: method,
+                                                          arg0: expression,
+                                                          arg1: predicateExpression);
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     #region logging
