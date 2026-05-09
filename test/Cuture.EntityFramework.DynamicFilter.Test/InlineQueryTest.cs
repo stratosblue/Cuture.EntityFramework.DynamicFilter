@@ -118,7 +118,7 @@ public class InlineQueryTest : SimpleQueryTestBase
                 m.Key,
                 MaxId = m.OrderBy(n => n.TenantId).Max(n => n.Id),
                 MinId = m.OrderBy(n => n.TenantId).Min(n => n.Id),
-                Count = dbContext.Articles.Where(n => n.TenantId == m.Key && !dbContext.Users.IgnoreQueryFilters().Any(u => u.Id == n.UserId && u.IsDeleted)).Sum(n => n.Title.Length)
+                Count = dbContext.Articles.Where(n => n.TenantId == m.Key && !dbContext.Users.IgnoreQueryFilters().Any(u => u.Id == n.UserId && u.IsDeleted)).Sum(n => n.Title.Length),
             })
             .ToListAsync(TestContext.CancellationToken);
 
@@ -133,7 +133,7 @@ public class InlineQueryTest : SimpleQueryTestBase
                                                         m.Key,
                                                         MaxId = m.OrderBy(n => n.TenantId).Max(n => n.Id),
                                                         MinId = m.OrderBy(n => n.TenantId).Min(n => n.Id),
-                                                        Count = dbContext.Articles.Where(n => n.TenantId == m.Key && !dbContext.Users.IgnoreQueryFilters().Any(u => u.Id == n.UserId && u.IsDeleted)).Sum(n => n.Title.Length)
+                                                        Count = dbContext.Articles.Where(n => n.TenantId == m.Key && !dbContext.Users.IgnoreQueryFilters().Any(u => u.Id == n.UserId && u.IsDeleted)).Sum(n => n.Title.Length),
                                                     })
                                                     .ToListAsync(TestContext.CancellationToken); ;
 

@@ -120,7 +120,8 @@ public abstract class DbContextTestBase
                         IsDeleted = addUserIndex > 8,
                         OrganizationId = organizationId,
                         TenantId = tenantId,
-                        CreateTime = DateTime.UtcNow
+                        CreateTime = DateTime.UtcNow,
+                        Score = Random.Shared.Next(1, int.MaxValue),
                     };
                     users.Add(user);
                     dbContext.Users.Add(user);
@@ -136,7 +137,8 @@ public abstract class DbContextTestBase
                             IsDeleted = addArticleIndex > 3,
                             OrganizationId = organizationId,
                             TenantId = tenantId,
-                            CreateTime = DateTime.UtcNow
+                            CreateTime = DateTime.UtcNow,
+                            Score = Random.Shared.Next(1, int.MaxValue),
                         };
                         articles.Add(article);
                         dbContext.Articles.Add(article);

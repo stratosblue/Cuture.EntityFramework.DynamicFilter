@@ -6,7 +6,7 @@ public class User : ITenantId, IOrganizationId, ISoftDeletion
 {
     public int Id { get; set; }
 
-    public string Name { get; set; }
+    public required string Name { get; set; }
 
     public bool IsDeleted { get; set; }
 
@@ -15,6 +15,8 @@ public class User : ITenantId, IOrganizationId, ISoftDeletion
     public ulong TenantId { get; set; }
 
     public required DateTime CreateTime { get; set; }
+
+    public int? Score { get; set; }
 
     public override string ToString()
     {

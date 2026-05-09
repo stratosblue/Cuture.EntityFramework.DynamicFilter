@@ -11,9 +11,9 @@ public class Article : ITenantId, IOrganizationId, ISoftDeletion
 
     public int UserId { get; set; }
 
-    public string Title { get; set; }
+    public required string Title { get; set; }
 
-    public string Content { get; set; }
+    public required string Content { get; set; }
 
     public bool IsDeleted { get; set; }
 
@@ -22,6 +22,8 @@ public class Article : ITenantId, IOrganizationId, ISoftDeletion
     public ulong TenantId { get; set; }
 
     public required DateTime CreateTime { get; set; }
+
+    public int? Score { get; set; }
 
     public override string ToString()
     {

@@ -352,7 +352,9 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
                             {
                                 var processedArgumentExpression = argumentExpression;
 
-                                if (argumentExpression.NodeType == ExpressionType.Call)
+                                if (argumentExpression.NodeType == ExpressionType.Call
+                                    || argumentExpression.NodeType == ExpressionType.Coalesce
+                                    || argumentExpression is BinaryExpression or UnaryExpression)
                                 {
                                     processedArgumentExpression = ResolveNext(argumentExpression, ref context);
                                 }
@@ -456,7 +458,7 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
                     break;
                 }
                 //其它表达式类型暂不支持，输出日志
-                LogUnsupportedExpression(logger, expression.Type, expression);
+                LogUnsupportedExpression(logger, expression.NodeType, expression.Type, expression);
                 break;
         }
 
@@ -623,8 +625,8 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
 
     #region logging
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Expression \"{Type}\" that do not support resolve => {Expression}")]
-    private static partial void LogUnsupportedExpression(ILogger logger, Type type, Expression expression);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Expression [{NodeType}] \"{Type}\" that do not support resolve => {Expression}")]
+    private static partial void LogUnsupportedExpression(ILogger logger, ExpressionType nodeType, Type type, Expression expression);
 
     #endregion logging
 
