@@ -104,8 +104,8 @@ public abstract class DbContextTestBase
         var userId = 30000;
         var articleId = 40000;
 
-        List<User> users = new();
-        List<Article> articles = new();
+        List<User> users = [];
+        List<Article> articles = [];
 
         for (ulong tenantId = 10001; tenantId < 10011; tenantId++)
         {

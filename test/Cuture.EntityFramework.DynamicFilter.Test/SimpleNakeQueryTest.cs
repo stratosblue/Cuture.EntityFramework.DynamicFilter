@@ -64,8 +64,8 @@ public class SimpleNakeQueryTest : SimpleQueryTestBase
         var allUserCount = await dbContext.Users.IgnoreQueryFilters().CountAsync(TestContext.CancellationToken);
         var allArticleCount = await dbContext.Articles.IgnoreQueryFilters().CountAsync(TestContext.CancellationToken);
 
-        Assert.AreEqual(SeedData.Users.Count(), allUserCount);
-        Assert.AreEqual(SeedData.Articles.Count(), allArticleCount);
+        Assert.AreEqual(SeedData.Users.Count, allUserCount);
+        Assert.AreEqual(SeedData.Articles.Count, allArticleCount);
 
         var userCount = await dbContext.Users.CountAsync(TestContext.CancellationToken);
         var articleCount = await dbContext.Articles.CountAsync(TestContext.CancellationToken);
@@ -125,8 +125,8 @@ public class SimpleNakeQueryTest : SimpleQueryTestBase
         var allUsers = await dbContext.Users.IgnoreQueryFilters().ToListAsync(TestContext.CancellationToken);
         var allArticles = await dbContext.Articles.IgnoreQueryFilters().ToListAsync(TestContext.CancellationToken);
 
-        Assert.HasCount(SeedData.Users.Count(), allUsers);
-        Assert.HasCount(SeedData.Articles.Count(), allArticles);
+        Assert.HasCount(SeedData.Users.Count, allUsers);
+        Assert.HasCount(SeedData.Articles.Count, allArticles);
 
         var users = await dbContext.Users.ToListAsync(TestContext.CancellationToken);
         var articles = await dbContext.Articles.ToListAsync(TestContext.CancellationToken);
@@ -143,8 +143,8 @@ public class SimpleNakeQueryTest : SimpleQueryTestBase
         var users = await dbContext.Users.IgnoreQueryFilter("SoftDeletion").ToListAsync(TestContext.CancellationToken);
         var articles = await dbContext.Articles.IgnoreQueryFilter("SoftDeletion").ToListAsync(TestContext.CancellationToken);
 
-        Assert.HasCount(SeedData.Users.Count(), users);
-        Assert.HasCount(SeedData.Articles.Count(), articles);
+        Assert.HasCount(SeedData.Users.Count, users);
+        Assert.HasCount(SeedData.Articles.Count, articles);
     }
 
     [TestMethod]
@@ -158,8 +158,8 @@ public class SimpleNakeQueryTest : SimpleQueryTestBase
         var seedUsers = SeedData.Users.OrderByDescending(m => m.Id).ToList();
         var seedArticles = SeedData.Articles.OrderByDescending(m => m.Id).ToList();
 
-        Assert.HasCount(seedUsers.Count(), allUsers);
-        Assert.HasCount(seedArticles.Count(), allArticles);
+        Assert.HasCount(seedUsers.Count, allUsers);
+        Assert.HasCount(seedArticles.Count, allArticles);
 
         for (int i = 0; i < seedUsers.Count; i++)
         {
@@ -177,8 +177,8 @@ public class SimpleNakeQueryTest : SimpleQueryTestBase
         seedUsers = SeedData.Users.Where(m => !m.IsDeleted).OrderByDescending(m => m.Id).ToList();
         seedArticles = SeedData.Articles.Where(m => !m.IsDeleted).OrderByDescending(m => m.Id).ToList();
 
-        Assert.HasCount(seedUsers.Count(), users);
-        Assert.HasCount(seedArticles.Count(), articles);
+        Assert.HasCount(seedUsers.Count, users);
+        Assert.HasCount(seedArticles.Count, articles);
 
         for (int i = 0; i < seedUsers.Count; i++)
         {

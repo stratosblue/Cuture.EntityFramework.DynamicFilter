@@ -2,7 +2,7 @@
 
 namespace Cuture.EntityFramework.DynamicFilter.Test.DatabaseContext;
 
-public class User : ITenantId, IOrganizationId, ISoftDeletion
+public record class User : ITenantId, IOrganizationId, ISoftDeletion
 {
     public int Id { get; set; }
 

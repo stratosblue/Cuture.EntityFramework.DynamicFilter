@@ -45,7 +45,7 @@ public class InlineQueryTest : SimpleQueryTestBase
 
         var allArticleCount = await dbContext.Articles.IgnoreQueryFilters().CountAsync(m => dbContext.Users.Any(n => n.Id == m.UserId), TestContext.CancellationToken);
 
-        Assert.AreEqual(SeedData.Articles.Count(), allArticleCount);
+        Assert.AreEqual(SeedData.Articles.Count, allArticleCount);
 
         foreach (var userGroup in SeedData.Users.GroupBy(m => m.TenantId))
         {
