@@ -23,12 +23,6 @@ public sealed class ExpressionDynamicQueryFilter<T> : IDynamicQueryFilter<T>
     public string? Name { get; }
 
     /// <inheritdoc/>
-    public int Order { get; }
-
-    /// <inheritdoc/>
-    public DynamicQueryFilterPlace Place { get; }
-
-    /// <inheritdoc/>
     public LambdaExpression UnderlyingExpression => Expression;
 
     #endregion Public 属性
@@ -37,22 +31,9 @@ public sealed class ExpressionDynamicQueryFilter<T> : IDynamicQueryFilter<T>
 
     /// <inheritdoc cref="ExpressionDynamicQueryFilter{T}"/>
     public ExpressionDynamicQueryFilter(string? name, Expression<Func<T, bool>> expression)
-        : this(name, IDynamicQueryFilter.DefaultOrder, DynamicQueryFilterPlace.Default, expression)
-    {
-    }
-
-    /// <inheritdoc cref="ExpressionDynamicQueryFilter{T}"/>
-    public ExpressionDynamicQueryFilter(string? name, DynamicQueryFilterPlace place, Expression<Func<T, bool>> expression)
-        : this(name, IDynamicQueryFilter.DefaultOrder, place, expression)
-    { }
-
-    /// <inheritdoc cref="ExpressionDynamicQueryFilter{T}"/>
-    public ExpressionDynamicQueryFilter(string? name, int order, DynamicQueryFilterPlace place, Expression<Func<T, bool>> expression)
     {
         ArgumentNullException.ThrowIfNull(expression);
 
-        Order = order;
-        Place = place;
         Expression = expression;
         Name = name;
     }

@@ -14,20 +14,20 @@ public class GenericBenchmark
 {
     #region Private 字段
 
+    private readonly List<object> _references = [];
+
     private TestEFDbContext _dynamicDbContext = null!;
 
     private TestEFDbContext _originDbContext = null!;
-
-    private readonly List<object> _references = [];
 
     #endregion Private 字段
 
     #region Public 方法
 
     [Benchmark]
-    public void DynamicQuery()
+    public async Task DynamicQuery()
     {
-        var users = _dynamicDbContext.Users.Where(m => m.TenantId == 1)
+        var users = await _dynamicDbContext.Users.Where(m => m.TenantId == 1)
                                            .ToListAsync();
     }
 
@@ -42,7 +42,7 @@ public class GenericBenchmark
             {
                 options.Entity<User>(builder =>
                 {
-                    builder.AddTailFilter("IsDeleted", m => !m.IsDeleted);
+                    builder.AddFilter("IsDeleted", m => !m.IsDeleted);
                 });
             });
         }, builder =>
@@ -118,9 +118,9 @@ public class GenericBenchmark
     }
 
     [Benchmark]
-    public void ManualQuery()
+    public async Task ManualQuery()
     {
-        var users = _originDbContext.Users.Where(m => m.TenantId == 1)
+        var users = await _originDbContext.Users.Where(m => m.TenantId == 1)
                                           .Where(m => !m.IsDeleted)
                                           .ToListAsync();
     }

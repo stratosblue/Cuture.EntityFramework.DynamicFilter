@@ -23,12 +23,6 @@ public abstract class DynamicQueryFilter<T>(string? name = null) : IDynamicQuery
     public virtual string? Name { get; init; } = name;
 
     /// <inheritdoc/>
-    public virtual int Order { get; } = IDynamicQueryFilter.DefaultOrder;
-
-    /// <inheritdoc/>
-    public virtual DynamicQueryFilterPlace Place { get; init; } = DynamicQueryFilterPlace.Default;
-
-    /// <inheritdoc/>
     public LambdaExpression UnderlyingExpression => Expression;
 
     #endregion Public 属性

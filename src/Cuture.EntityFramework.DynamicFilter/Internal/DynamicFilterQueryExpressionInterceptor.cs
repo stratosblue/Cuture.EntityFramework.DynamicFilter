@@ -70,17 +70,11 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
                             var filterContext = context.FilterContext;
                             var queryFilterTargetStackIndex = context.QueryFilterTargetStackIndex;
 
-                            //当前为目标尾部查询，且存在尾部筛选器
-                            if (currentQueryStackIndex == queryFilterTargetStackIndex.Tail
-                                && filterContext.TailQueryFilters is not null)
+                            //存在筛选器
+                            if (currentQueryStackIndex == queryFilterTargetStackIndex
+                                && filterContext.QueryFilters is not null)
                             {
-                                QueryFilterLambdaExpressionCombiner.TryAndAlso(ref processedQueryExpression, filterContext.TailQueryFilters, ref context);
-                            }
-                            //当前为目标头部查询，且存在头部筛选器
-                            if (currentQueryStackIndex == queryFilterTargetStackIndex.Head
-                                && filterContext.HeadQueryFilters is not null)
-                            {
-                                QueryFilterLambdaExpressionCombiner.TryAndAlso(ref processedQueryExpression, filterContext.HeadQueryFilters, ref context);
+                                QueryFilterLambdaExpressionCombiner.TryAndAlso(ref processedQueryExpression, filterContext.QueryFilters, ref context);
                             }
 
                             if (!ReferenceEquals(preExpression, processedPreExpression)
@@ -336,8 +330,7 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
             FilterContext = new()
             {
                 //将外部的筛选器传入到内部，保证子查询也能正确应用筛选器
-                HeadQueryFilters = filterContext.HeadQueryFilters,
-                TailQueryFilters = filterContext.TailQueryFilters,
+                QueryFilters = filterContext.QueryFilters,
             },
         };
         return Resolve(expression, ref nextContext);
@@ -407,31 +400,25 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
 
 #pragma warning disable IDE0305
 
-            filterContext.TailQueryFilters = queryFilters.Where(m => m.IsEnable && !IsIgnoredFilter(m) && m.Place == DynamicQueryFilterPlace.Tail)
-                                                         .OrderBy(static m => m.Order)
-                                                         .ToList();
-            filterContext.HeadQueryFilters = queryFilters.Where(m => m.IsEnable && !IsIgnoredFilter(m) && m.Place != DynamicQueryFilterPlace.Tail)
-                                                         .OrderByDescending(static m => m.Order)
-                                                         .ToList();
+            filterContext.QueryFilters = queryFilters.Where(m => m.IsEnable && !IsIgnoredFilter(m))
+                                                     .ToList();
 
             context.CurrentPredicateFuncType = predicateFuncType;
 
 #pragma warning restore IDE0305
 
-            var headQueryFilterTargetStackIndex = context.ExpressionTypeStack.FindLastIndex(m => m == predicateExpressionType);
-            var tailQueryFilterTargetStackIndex = context.ExpressionTypeStack.FindIndex(m => m == predicateExpressionType);
+            var queryFilterTargetStackIndex = context.ExpressionTypeStack.FindIndex(m => m == predicateExpressionType);
 
-            if (headQueryFilterTargetStackIndex != -1
-                && tailQueryFilterTargetStackIndex != -1)
+            if (queryFilterTargetStackIndex != -1)
             {
-                context.QueryFilterTargetStackIndex = new(headQueryFilterTargetStackIndex, tailQueryFilterTargetStackIndex);
+                context.QueryFilterTargetStackIndex = queryFilterTargetStackIndex;
             }
             else    //没有表达式，则为裸查询，直接添加筛选
             {
                 Expression? queryExpression = null;
                 ParameterExpression? parameter = null;
 
-                var filters = filterContext.HeadQueryFilters.Reverse().Concat(filterContext.TailQueryFilters);
+                var filters = filterContext.QueryFilters;
 
                 foreach (var queryFilter in filters)
                 {

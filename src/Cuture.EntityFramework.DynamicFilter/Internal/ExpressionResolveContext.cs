@@ -20,7 +20,7 @@ internal ref struct ExpressionResolveContext
     /// <summary>
     /// 查询过滤器目标栈索引
     /// </summary>
-    public QueryFilterTargetStackIndex QueryFilterTargetStackIndex;
+    public int QueryFilterTargetStackIndex;
 
     #endregion Public 字段
 
@@ -53,15 +53,8 @@ internal ref struct ExpressionResolveContext
     /// <inheritdoc cref="ExpressionResolveContext"/>
     public ExpressionResolveContext()
     {
-        QueryFilterTargetStackIndex = new(-1, -1);
+        QueryFilterTargetStackIndex = -1;
     }
 
     #endregion Public 构造函数
 }
-
-/// <summary>
-/// 查询过滤器目标栈索引
-/// </summary>
-/// <param name="Head">头部筛选器</param>
-/// <param name="Tail">尾部筛选器</param>
-public record struct QueryFilterTargetStackIndex(int Head, int Tail);

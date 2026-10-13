@@ -59,12 +59,10 @@ public class EntityDynamicFilterBuilder<TEntity>(EntityDynamicQueryFilterMetadat
     /// 为实体 <typeparamref name="TEntity"/> 添加基于表达式 <paramref name="predicate"/> 的过滤器
     /// </summary>
     /// <param name="predicate"></param>
-    /// <param name="order"></param>
-    /// <param name="filterPlace"></param>
     /// <returns></returns>
-    public EntityDynamicFilterBuilder<TEntity> AddFilter(Expression<Func<TEntity, bool>> predicate, int order = IDynamicQueryFilter.DefaultOrder, DynamicQueryFilterPlace filterPlace = DynamicQueryFilterPlace.Default)
+    public EntityDynamicFilterBuilder<TEntity> AddFilter(Expression<Func<TEntity, bool>> predicate)
     {
-        return AddFilter(null!, predicate, order, filterPlace);
+        return AddFilter(null!, predicate);
     }
 
     /// <summary>
@@ -72,12 +70,10 @@ public class EntityDynamicFilterBuilder<TEntity>(EntityDynamicQueryFilterMetadat
     /// </summary>
     /// <param name="name"></param>
     /// <param name="predicate"></param>
-    /// <param name="order"></param>
-    /// <param name="filterPlace"></param>
     /// <returns></returns>
-    public EntityDynamicFilterBuilder<TEntity> AddFilter(string name, Expression<Func<TEntity, bool>> predicate, int order = IDynamicQueryFilter.DefaultOrder, DynamicQueryFilterPlace filterPlace = DynamicQueryFilterPlace.Default)
+    public EntityDynamicFilterBuilder<TEntity> AddFilter(string name, Expression<Func<TEntity, bool>> predicate)
     {
-        var queryFilter = new ExpressionDynamicQueryFilter<TEntity>(name, order, filterPlace, predicate);
+        var queryFilter = new ExpressionDynamicQueryFilter<TEntity>(name, predicate);
         return AddFilter(_ => queryFilter);
     }
 
@@ -85,12 +81,10 @@ public class EntityDynamicFilterBuilder<TEntity>(EntityDynamicQueryFilterMetadat
     /// 为实体 <typeparamref name="TEntity"/> 添加从 <paramref name="predicateFactory"/> 获取表达式的过滤器
     /// </summary>
     /// <param name="predicateFactory"></param>
-    /// <param name="order"></param>
-    /// <param name="filterPlace"></param>
     /// <returns></returns>
-    public EntityDynamicFilterBuilder<TEntity> AddFilter(Func<IServiceProvider, Expression<Func<TEntity, bool>>> predicateFactory, int order = IDynamicQueryFilter.DefaultOrder, DynamicQueryFilterPlace filterPlace = DynamicQueryFilterPlace.Default)
+    public EntityDynamicFilterBuilder<TEntity> AddFilter(Func<IServiceProvider, Expression<Func<TEntity, bool>>> predicateFactory)
     {
-        return AddFilter(null!, predicateFactory, order, filterPlace);
+        return AddFilter(null!, predicateFactory);
     }
 
     /// <summary>
@@ -98,12 +92,10 @@ public class EntityDynamicFilterBuilder<TEntity>(EntityDynamicQueryFilterMetadat
     /// </summary>
     /// <param name="name"></param>
     /// <param name="predicateFactory"></param>
-    /// <param name="order"></param>
-    /// <param name="filterPlace"></param>
     /// <returns></returns>
-    public EntityDynamicFilterBuilder<TEntity> AddFilter(string name, Func<IServiceProvider, Expression<Func<TEntity, bool>>> predicateFactory, int order = IDynamicQueryFilter.DefaultOrder, DynamicQueryFilterPlace filterPlace = DynamicQueryFilterPlace.Default)
+    public EntityDynamicFilterBuilder<TEntity> AddFilter(string name, Func<IServiceProvider, Expression<Func<TEntity, bool>>> predicateFactory)
     {
-        return AddFilter(serviceProvider => new ExpressionDynamicQueryFilter<TEntity>(name, order, filterPlace, predicateFactory(serviceProvider)));
+        return AddFilter(serviceProvider => new ExpressionDynamicQueryFilter<TEntity>(name, predicateFactory(serviceProvider)));
     }
 
     #endregion ExpressionFilter

@@ -7,15 +7,6 @@ namespace Cuture.EntityFramework.DynamicFilter;
 /// </summary>
 public interface IDynamicQueryFilter
 {
-    #region Public 字段
-
-    /// <summary>
-    /// 默认排序
-    /// </summary>
-    public const int DefaultOrder = 0;
-
-    #endregion Public 字段
-
     #region Public 属性
 
     /// <summary>
@@ -32,16 +23,6 @@ public interface IDynamicQueryFilter
     /// 名称
     /// </summary>
     public string? Name { get; }
-
-    /// <summary>
-    /// 应用排序
-    /// </summary>
-    public int Order { get; }
-
-    /// <summary>
-    /// filter位置
-    /// </summary>
-    public DynamicQueryFilterPlace Place { get; }
 
     /// <summary>
     /// 表达式

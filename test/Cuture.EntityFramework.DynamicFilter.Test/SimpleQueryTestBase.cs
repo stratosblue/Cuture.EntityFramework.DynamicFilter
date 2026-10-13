@@ -13,40 +13,40 @@ public abstract class SimpleQueryTestBase : DbContextTestBase
         {
             options.Entity<User>(builder =>
             {
-                builder.AddHeadFilter(provider =>
+                builder.AddFilter(provider =>
                 {
                     var currentTenant = provider.GetRequiredService<ICurrentTenant>();
                     return currentTenant.Id is null
                            ? n => true
                            : n => n.TenantId == currentTenant.Id;
-                }, order: 1);
-                builder.AddHeadFilter(provider =>
+                });
+                builder.AddFilter(provider =>
                 {
                     var currentOrganization = provider.GetRequiredService<ICurrentOrganization>();
                     return currentOrganization.Id is null
                            ? n => true
                            : n => n.OrganizationId == currentOrganization.Id;
-                }, order: 2);
-                builder.AddTailFilter("SoftDeletion", n => n.IsDeleted == false);
+                });
+                builder.AddFilter("SoftDeletion", n => n.IsDeleted == false);
             });
 
             options.Entity<Article>(builder =>
             {
-                builder.AddHeadFilter(provider =>
+                builder.AddFilter(provider =>
                 {
                     var currentTenant = provider.GetRequiredService<ICurrentTenant>();
                     return currentTenant.Id is null
                            ? n => true
                            : n => n.TenantId == currentTenant.Id;
-                }, order: 1);
-                builder.AddHeadFilter(provider =>
+                });
+                builder.AddFilter(provider =>
                 {
                     var currentOrganization = provider.GetRequiredService<ICurrentOrganization>();
                     return currentOrganization.Id is null
                            ? n => true
                            : n => n.OrganizationId == currentOrganization.Id;
-                }, order: 2);
-                builder.AddTailFilter("SoftDeletion", n => n.IsDeleted == false);
+                });
+                builder.AddFilter("SoftDeletion", n => n.IsDeleted == false);
             });
         });
 

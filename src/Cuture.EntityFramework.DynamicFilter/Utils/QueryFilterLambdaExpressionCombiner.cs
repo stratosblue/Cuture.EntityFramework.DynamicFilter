@@ -90,11 +90,7 @@ internal static class QueryFilterLambdaExpressionCombiner
                 var parameterReplacedExpression = ExpressionParameterReplacer.Replace(filterExpression.Body, filterExpression.Parameters[0], finalParameter);
                 var parameterizeBody = QueryExpressionParameterExtractor.Extracting(parameterReplacedExpression, _parameterValues!, ref _parameterCount);
 
-                finalExpressionBody = queryFilter.Place switch
-                {
-                    DynamicQueryFilterPlace.Tail => Expression.AndAlso(finalExpressionBody, parameterizeBody),
-                    _ => Expression.AndAlso(parameterizeBody, finalExpressionBody),
-                };
+                finalExpressionBody = Expression.AndAlso(finalExpressionBody, parameterizeBody);
             }
             return Expression.Lambda(finalExpressionBody, finalParameter);
         }

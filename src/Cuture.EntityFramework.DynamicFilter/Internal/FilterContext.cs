@@ -8,11 +8,6 @@ internal class FilterContext
     #region Public 属性
 
     /// <summary>
-    /// 头部查询过滤器
-    /// </summary>
-    public IList<IDynamicQueryFilter>? HeadQueryFilters { get; set; }
-
-    /// <summary>
     /// 忽略的过滤器名称列表
     /// </summary>
     public List<string>? IgnoreFilterNames { get; set; }
@@ -23,9 +18,9 @@ internal class FilterContext
     public List<Type>? IgnoreFilterTypes { get; set; }
 
     /// <summary>
-    /// 尾部查询过滤器
+    /// 查询过滤器
     /// </summary>
-    public IList<IDynamicQueryFilter>? TailQueryFilters { get; set; }
+    public IList<IDynamicQueryFilter>? QueryFilters { get; set; }
 
     #endregion Public 属性
 

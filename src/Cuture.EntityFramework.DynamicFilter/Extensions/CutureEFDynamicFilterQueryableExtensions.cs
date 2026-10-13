@@ -68,7 +68,7 @@ public static class CutureEFDynamicFilterQueryableExtensions
     public static IQueryable<TEntity> IgnoreQueryFilter<TEntity>(this IQueryable<TEntity> source, string filterName)
     {
         ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNullOrEmpty(filterName);
+        ArgumentException.ThrowIfNullOrEmpty(filterName);
 
         return source.Provider is EntityQueryProvider
                     ? source.Provider.CreateQuery<TEntity>(
