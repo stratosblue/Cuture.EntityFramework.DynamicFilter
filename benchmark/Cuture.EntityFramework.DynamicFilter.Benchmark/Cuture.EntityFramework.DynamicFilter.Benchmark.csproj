@@ -25,6 +25,11 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.*" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.*" />
   </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net11.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="$(Net11Version)" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="$(Net11Version)" />
+  </ItemGroup>
   
   <ItemGroup>
     <ProjectReference Include="..\..\src\Cuture.EntityFramework.DynamicFilter\Cuture.EntityFramework.DynamicFilter.csproj" />

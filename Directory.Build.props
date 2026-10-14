@@ -1,6 +1,6 @@
 ﻿<Project>
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net8.0;net9.0;net10.0;net11.0</TargetFrameworks>
 
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -9,10 +9,12 @@
     <IsPackable>false</IsPackable>
 
     <NoWarn>$(NoWarn);EF1001</NoWarn>
+
+    <Net11Version>11.0.0-rc.*</Net11Version>
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
 
     <Description>An extension library for `EntityFrameworkCore` to support dynamic global filters. 一个 `EntityFrameworkCore` 的拓展库，用于支持动态的全局过滤器。</Description>
 

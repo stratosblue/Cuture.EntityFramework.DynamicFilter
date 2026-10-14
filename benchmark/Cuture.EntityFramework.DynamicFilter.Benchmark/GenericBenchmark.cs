@@ -55,9 +55,9 @@ public class GenericBenchmark
                                                  .OrderBy(m => m.Id)
                                                  .ToListAsync();
 
-        var users2 = await _originDbContext.Users.Where(m => m.TenantId == 1)
-                                                 .OrderBy(m => m.Id)
-                                                 .ToListAsync();
+        var users2 = await _dynamicDbContext.Users.Where(m => m.TenantId == 1)
+                                                  .OrderBy(m => m.Id)
+                                                  .ToListAsync();
 
         if (!users1.Zip(users2).ToList().TrueForAll((m) => m.First.Equals(m.Second)))
         {

@@ -23,7 +23,25 @@ internal sealed class ParameterValuesHookQueryCompiler(IQueryContextFactory quer
 {
     #region Public 方法
 
-#if NET10_0_OR_GREATER
+#if NET11_0_OR_GREATER
+    
+    /// <inheritdoc/>
+    public override Expression ExtractParameters(Expression query,
+                                                 ParameterValues parameters,
+                                                 IDiagnosticsLogger<DbLoggerCategory.Query> logger,
+                                                 bool compiledQuery = false)
+    {
+        if (currentContext.Context.GetService<DynamicFilterQueryExpressionInterceptor>() is not { } interceptor)
+        {
+            throw new InvalidOperationException($"There is no \"{nameof(DynamicFilterQueryExpressionInterceptor)}\" found in current DbContext.");
+        }
+
+        query = base.ExtractParameters(query, parameters, logger, compiledQuery);
+
+        return interceptor.Resolve(query, parameters);
+    }
+
+#elif NET10_0_OR_GREATER
 
     /// <inheritdoc/>
     public override Expression ExtractParameters(Expression query,

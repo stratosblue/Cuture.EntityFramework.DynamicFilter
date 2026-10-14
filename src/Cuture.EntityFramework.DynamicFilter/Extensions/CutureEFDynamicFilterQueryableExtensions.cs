@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq.Expressions;
 using System.Reflection;
 using Cuture.EntityFramework.DynamicFilter;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Extensions;
@@ -17,6 +18,12 @@ public static class CutureEFDynamicFilterQueryableExtensions
     #region Internal 字段
 
     internal static readonly MethodInfo EFIgnoreQueryFiltersMethodInfo = typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetMethod(nameof(EntityFrameworkQueryableExtensions.IgnoreQueryFilters), [typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0))])!;
+
+#if NET11_0_OR_GREATER
+
+    internal static readonly MethodInfo EFIgnoreKeyedQueryFiltersMethodInfo = typeof(EntityFrameworkQueryableExtensions).GetTypeInfo().GetMethod(nameof(EntityFrameworkQueryableExtensions.IgnoreQueryFilters), [typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0)), typeof(IReadOnlyCollection<string>)])!;
+
+#endif
 
     internal static readonly MethodInfo IgnoreQueryFilterByNameMethodInfo = typeof(CutureEFDynamicFilterQueryableExtensions).GetTypeInfo().GetMethod(nameof(IgnoreQueryFilter), [typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0)), typeof(string)])!;
 
@@ -45,7 +52,7 @@ public static class CutureEFDynamicFilterQueryableExtensions
     /// <param name="source"></param>
     /// <param name="filterType"></param>
     /// <returns></returns>
-    public static IQueryable<TEntity> IgnoreQueryFilter<TEntity>(this IQueryable<TEntity> source, Type filterType)
+    public static IQueryable<TEntity> IgnoreQueryFilter<TEntity>(this IQueryable<TEntity> source, [NotParameterized] Type filterType)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(filterType);
@@ -65,7 +72,7 @@ public static class CutureEFDynamicFilterQueryableExtensions
     /// <param name="source"></param>
     /// <param name="filterName"></param>
     /// <returns></returns>
-    public static IQueryable<TEntity> IgnoreQueryFilter<TEntity>(this IQueryable<TEntity> source, string filterName)
+    public static IQueryable<TEntity> IgnoreQueryFilter<TEntity>(this IQueryable<TEntity> source, [NotParameterized] string filterName)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentException.ThrowIfNullOrEmpty(filterName);

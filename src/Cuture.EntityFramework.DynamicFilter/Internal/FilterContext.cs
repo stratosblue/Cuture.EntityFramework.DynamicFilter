@@ -46,5 +46,15 @@ internal class FilterContext
         IgnoreFilterNames.Add(filterName);
     }
 
+    /// <summary>
+    /// 添加对名称 <paramref name="filterNames"/> 的过滤器的忽略
+    /// </summary>
+    /// <param name="filterNames"></param>
+    public void AddIgnoreFilters(IEnumerable<string> filterNames)
+    {
+        IgnoreFilterNames ??= [];
+        IgnoreFilterNames.AddRange(filterNames);
+    }
+
     #endregion Public 方法
 }

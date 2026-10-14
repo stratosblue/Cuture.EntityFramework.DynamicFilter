@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Runtime.CompilerServices;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Extensions;
 
 namespace Cuture.EntityFramework.DynamicFilter.Test;
@@ -100,6 +101,23 @@ public class SimpleNakeQueryTest : SimpleQueryTestBase
                 Assert.HasCount(SeedData.Users.Count(m => m.TenantId == tenantId), users);
                 Assert.HasCount(SeedData.Articles.Count(m => m.TenantId == tenantId), articles);
 
+#if NET11_0_OR_GREATER
+                users = await dbContext.Users.IgnoreQueryFilters(["SoftDeletion"]).ToListAsync(TestContext.CancellationToken);
+                articles = await dbContext.Articles.IgnoreQueryFilters(["SoftDeletion"]).ToListAsync(TestContext.CancellationToken);
+
+                Assert.HasCount(SeedData.Users.Count(m => m.TenantId == tenantId), users);
+                Assert.HasCount(SeedData.Articles.Count(m => m.TenantId == tenantId), articles);
+
+                users = await dbContext.Users.IgnoreQueryFilters(GetIgnoreQueryFilters()).ToListAsync(TestContext.CancellationToken);
+                articles = await dbContext.Articles.IgnoreQueryFilters(GetIgnoreQueryFilters()).ToListAsync(TestContext.CancellationToken);
+
+                Assert.HasCount(SeedData.Users.Count(m => m.TenantId == tenantId), users);
+                Assert.HasCount(SeedData.Articles.Count(m => m.TenantId == tenantId), articles);
+                
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static List<string> GetIgnoreQueryFilters() => ["SoftDeletion"];
+#endif
+
                 ChangeOrganization(organizationId);
 
                 users = await dbContext.Users.ToListAsync(TestContext.CancellationToken);
@@ -142,6 +160,14 @@ public class SimpleNakeQueryTest : SimpleQueryTestBase
 
         var users = await dbContext.Users.IgnoreQueryFilter("SoftDeletion").ToListAsync(TestContext.CancellationToken);
         var articles = await dbContext.Articles.IgnoreQueryFilter("SoftDeletion").ToListAsync(TestContext.CancellationToken);
+
+        Assert.HasCount(SeedData.Users.Count, users);
+        Assert.HasCount(SeedData.Articles.Count, articles);
+
+#if NET11_0_OR_GREATER
+        users = await dbContext.Users.IgnoreQueryFilters(["SoftDeletion"]).ToListAsync(TestContext.CancellationToken);
+        articles = await dbContext.Articles.IgnoreQueryFilters(["SoftDeletion"]).ToListAsync(TestContext.CancellationToken);
+#endif
 
         Assert.HasCount(SeedData.Users.Count, users);
         Assert.HasCount(SeedData.Articles.Count, articles);

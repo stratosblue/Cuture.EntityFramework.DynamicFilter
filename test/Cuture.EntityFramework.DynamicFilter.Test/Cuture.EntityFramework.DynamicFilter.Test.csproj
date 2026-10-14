@@ -28,6 +28,11 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.*" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net11.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="$(Net11Version)" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="$(Net11Version)" />
+  </ItemGroup>
+  
   <ItemGroup>
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting;Cuture.EntityFramework.DynamicFilter.Test.DatabaseContext" />
   </ItemGroup>

@@ -87,19 +87,9 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
                         }
                         else if (targetMethod == CutureEFDynamicFilterQueryableExtensions.IgnoreQueryFilterByNameMethodInfo)  //当前方法为按名称忽略筛选器
                         {
-                            string? filterName = null;
-#if NET10_0_OR_GREATER
-                            if (queryExpression is QueryParameterExpression parameterExpression
-                                && context.ParameterValues.TryGetValue(parameterExpression.Name!, out var filterNameObject))
-#else
-                            if (queryExpression is ParameterExpression parameterExpression
-                                && context.ParameterValues.ParameterValues.TryGetValue(parameterExpression.Name!, out var filterNameObject))
-#endif
-                            {
-                                filterName = filterNameObject as string;
-                            }
-
-                            if (string.IsNullOrEmpty(filterName))
+                            if (queryExpression is not ConstantExpression constantExpression
+                                || constantExpression.Value is not string filterName
+                                || string.IsNullOrEmpty(filterName))
                             {
                                 throw new InvalidOperationException($"Invalid ignore query filter expression \"{methodCallExpression}\".");
                             }
@@ -108,6 +98,18 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
 
                             return Resolve(methodCallExpression.Arguments[0], ref context);
                         }
+#if NET11_0_OR_GREATER
+                        else if (genericTargetMethod == CutureEFDynamicFilterQueryableExtensions.EFIgnoreKeyedQueryFiltersMethodInfo)  //当前方法为EF的忽略指定Key QueryFilter
+                        {
+                            if (queryExpression is ConstantExpression constantExpression
+                                && constantExpression.Value is IEnumerable<string> filterNames)
+                            {
+                                context.FilterContext.AddIgnoreFilters(filterNames);
+                            }
+
+                            return Resolve(methodCallExpression.Arguments[0], ref context);
+                        }
+#endif
                         else if (LinqMethodInfoCache.SkipMethods.Contains(targetMethod))   //需要跳过的方法，不处理当前查询表达式
                         {
                             var processedPreExpression = Resolve(preExpression, ref context);
