@@ -19,12 +19,19 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     - name: Setup .NET Core SDK
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: |
           8.x
           9.x
           10.x
+
+    - name: Setup .NET 11 SDK
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: '11.0.x'
+        dotnet-quality: 'preview'
+        
     - name: restore dependencies
       run: dotnet restore
     - name: build
