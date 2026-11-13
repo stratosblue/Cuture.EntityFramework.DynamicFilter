@@ -222,6 +222,22 @@ public class SimpleQueryTest : SimpleQueryTestBase
     }
 
     [TestMethod]
+    public async Task Should_Nullable_Decimal_Convert_Success()
+    {
+#if NET9_0_OR_GREATER
+
+        var dbContext = GetTestEFDbContext();
+        var items = await dbContext.Articles.Join(dbContext.Users, m => m.UserId, m => m.Id, (m, n) => new { m.IsReleased, m.Score, NScore = n.Score, n.Weight }).ToListAsync(TestContext.CancellationToken);
+        var score1 = items.Sum(m => m.IsReleased ? m.Score : (decimal?)m.NScore * m.Weight);
+        Assert.AreNotEqual(0, score1);
+
+        var score2 = await dbContext.Articles.Join(dbContext.Users, m => m.UserId, m => m.Id, (m, n) => m.IsReleased ? m.Score : (decimal?)n.Score * n.Weight).SumAsync(TestContext.CancellationToken) ?? 0;
+        Assert.AreEqual(score1, score2);
+
+#endif
+    }
+
+    [TestMethod]
     public async Task Should_OrderByDescending_Success()
     {
         var dbContext = GetTestEFDbContext();

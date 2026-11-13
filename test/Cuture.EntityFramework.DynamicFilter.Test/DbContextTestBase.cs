@@ -122,6 +122,7 @@ public abstract class DbContextTestBase
                         TenantId = tenantId,
                         CreateTime = DateTime.UtcNow,
                         Score = Random.Shared.Next(1, int.MaxValue),
+                        Weight = (decimal)Random.Shared.NextSingle(),
                     };
                     users.Add(user);
                     dbContext.Users.Add(user);
@@ -138,7 +139,8 @@ public abstract class DbContextTestBase
                             OrganizationId = organizationId,
                             TenantId = tenantId,
                             CreateTime = DateTime.UtcNow,
-                            Score = Random.Shared.Next(1, int.MaxValue),
+                            IsReleased = addArticleIndex % 2 == 0,
+                            Score = addArticleIndex % 2 == 0 ? Random.Shared.Next(1, int.MaxValue) : 0,
                         };
                         articles.Add(article);
                         dbContext.Articles.Add(article);

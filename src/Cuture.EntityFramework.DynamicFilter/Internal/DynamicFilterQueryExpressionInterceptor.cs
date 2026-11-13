@@ -307,7 +307,12 @@ internal sealed partial class DynamicFilterQueryExpressionInterceptor(DynamicQue
 
             default:
                 //忽略参数表达式
-                if (expression.NodeType is ExpressionType.Parameter or ExpressionType.MemberAccess or ExpressionType.Constant)
+                if (expression.NodeType
+                    is ExpressionType.Parameter
+                    or ExpressionType.MemberAccess
+                    or ExpressionType.Constant
+                    or ExpressionType.Conditional
+                    or ExpressionType.MemberInit)
                 {
                     break;
                 }

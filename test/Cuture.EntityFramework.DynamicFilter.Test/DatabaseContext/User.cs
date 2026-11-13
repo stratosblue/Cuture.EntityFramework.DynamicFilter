@@ -16,7 +16,9 @@ public record class User : ITenantId, IOrganizationId, ISoftDeletion
 
     public required DateTime CreateTime { get; set; }
 
-    public int? Score { get; set; }
+    public int Score { get; set; }
+
+    public decimal Weight { get; set; }
 
     public override string ToString()
     {

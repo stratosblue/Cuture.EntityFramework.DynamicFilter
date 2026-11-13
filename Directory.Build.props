@@ -10,11 +10,13 @@
 
     <NoWarn>$(NoWarn);EF1001</NoWarn>
 
-    <Net11Version>11.0.0-rc.*</Net11Version>
+    <Net11Version>11.*</Net11Version>
+
+    <UseArtifactsOutput>true</UseArtifactsOutput>
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
 
     <Description>An extension library for `EntityFrameworkCore` to support dynamic global filters. 一个 `EntityFrameworkCore` 的拓展库，用于支持动态的全局过滤器。</Description>
 

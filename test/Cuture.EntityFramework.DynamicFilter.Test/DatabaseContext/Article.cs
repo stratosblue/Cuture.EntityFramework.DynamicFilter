@@ -23,7 +23,9 @@ public class Article : ITenantId, IOrganizationId, ISoftDeletion
 
     public required DateTime CreateTime { get; set; }
 
-    public int? Score { get; set; }
+    public bool IsReleased{ get; set; }
+
+    public decimal Score { get; set; }
 
     public override string ToString()
     {
